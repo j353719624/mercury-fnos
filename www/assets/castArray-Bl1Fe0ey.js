@@ -1,0 +1,1 @@
+import{Wr as r}from"./index-quJxVxr2.js";var t=function(){if(!arguments.length)return[];var t=arguments[0];return r(t)?t:[t]};export{t};

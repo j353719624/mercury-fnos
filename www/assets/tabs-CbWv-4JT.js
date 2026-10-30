@@ -1,0 +1,1 @@
+const a="smartTab",t="AccountManagement";export{a as n,t};

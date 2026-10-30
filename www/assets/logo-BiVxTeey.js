@@ -1,0 +1,1 @@
+var r=""+new URL("../logo.png",import.meta.url).href;export{r as t};

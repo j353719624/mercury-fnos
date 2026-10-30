@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>设备管理 · MERCURY</title>
+<style>
+  :root{--bg:#f5f6f8;--card:#fff;--border:#e4e7ed;--text:#303133;--muted:#909399;--dim:#a8abb2;--field:#fff;--field-border:#dcdfe6;--primary:#409eff;--danger:#f56c6c;--ok:#67c23a;--soft:#f5f7fa}
+  html[data-theme="dark"]{--bg:#121212;--card:#141414;--border:#1f2937;--text:#e5eaf3;--muted:#a3a6ad;--dim:#8d9095;--field:#1d1e1f;--field-border:#4c4d4f;--soft:#191a1c}
+  *{box-sizing:border-box}
+  body{margin:0;min-height:100vh;background:var(--bg);color:var(--text);
+       font:15px/1.6 -apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}
+  .wrap{max-width:720px;margin:0 auto;padding:32px 20px 48px}
+  h1{margin:0 0 4px;font-size:20px}
+  p.sub{margin:0 0 22px;font-size:13px;color:var(--muted)}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:14px}
+  .dev{display:flex;align-items:flex-start;gap:14px}
+  .dev .dot{width:8px;height:8px;border-radius:50%;background:var(--ok);margin-top:8px;flex:none}
+  .dev .dot.off{background:var(--dim)}
+  .dev .info{flex:1;min-width:0}
+  .dev .name{font-weight:600;font-size:15px}
+  .dev .meta{font-size:12px;color:var(--muted);margin-top:3px;word-break:break-all}
+  button{font-family:inherit;cursor:pointer;border-radius:8px;border:1px solid var(--field-border);
+         background:var(--card);color:var(--text);height:34px;padding:0 14px;font-size:13px}
+  button.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+  button.danger{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 45%,var(--border))}
+  button:disabled{opacity:.55;cursor:not-allowed}
+  label{display:block;font-size:12px;color:var(--muted);margin:14px 0 6px}
+  input{width:100%;height:38px;padding:0 12px;border-radius:8px;border:1px solid var(--field-border);
+        background:var(--field);color:var(--text);font-size:14px;font-family:inherit;outline:none}
+  input:focus{border-color:var(--primary)}
+  .row{display:flex;gap:10px}.row>div{flex:1}
+  .actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+  .msg{font-size:13px;min-height:20px;margin-top:12px}
+  .msg.err{color:var(--danger)}.msg.ok{color:var(--ok)}
+  .empty{color:var(--muted);font-size:13px;padding:6px 0}
+  h2{font-size:14px;margin:0 0 4px}
+  .hint{font-size:12px;color:var(--muted);margin:0 0 4px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>设备管理</h1>
+  <p class="sub">这里列出的每一台交换机都会出现在应用首页的设备列表里。</p>
+
+  <div class="card">
+    <h2>自动发现</h2>
+    <p class="hint">扫描当前局域网，找出水星 / TP-Link 系交换机，找出水星 / TP-Link 系交换机。</p>
+    <div class="actions" style="margin-top:0">
+      <button class="primary" id="scan">扫描局域网</button>
+    </div>
+    <div id="found" style="margin-top:12px"></div>
+  </div>
+
+  <div id="list"></div>
+
+  <div class="card">
+    <h2 id="formTitle">添加交换机</h2>
+    <p class="hint">保存前会先登录验证一次；同一 IP 再次保存即为更新。</p>
+
+    <label>名称（可留空）</label>
+    <input id="name" placeholder="水星 SE106 Pro" />
+
+    <div class="row">
+      <div>
+        <label>IP 地址</label>
+        <input id="ip" placeholder="192.168.110.81" />
+      </div>
+      <div style="flex:0 0 110px">
+        <label>端口</label>
+        <input id="port" value="80" />
+      </div>
+    </div>
+
+    <label>用户名</label>
+    <input id="username" value="admin" />
+
+    <label>密码</label>
+    <input id="password" type="password" placeholder="交换机管理密码" />
+
+    <div class="actions">
+      <button class="primary" id="save">保存并连接</button>
+      <button id="test">测试连接</button>
+      <button id="reset" style="display:none">取消编辑</button>
+      <a href="./" style="margin-left:auto;align-self:center;font-size:13px;color:var(--muted);text-decoration:none">返回应用 →</a>
+    </div>
+    <div class="msg" id="msg"></div>
+  </div>
+</div>
+
+<script>
+  (function(){var m='auto';try{m=localStorage.getItem('vueuse-color-scheme')||'auto'}catch(e){}
+   if(m!=='light'&&m!=='dark'){m=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'}
+   document.documentElement.setAttribute('data-theme',m)})();
+
+  var PREFIX=(function(){var p=location.pathname,i=p.lastIndexOf('/');return i>=0?p.slice(0,i):''})();
+  var listEl=document.getElementById('list'), msg=document.getElementById('msg');
+  var editingIp=null;
+
+  function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+
+  function form(){return{
+    name:document.getElementById('name').value.trim(),
+    ip:document.getElementById('ip').value.trim(),
+    port:parseInt(document.getElementById('port').value,10)||80,
+    username:document.getElementById('username').value.trim(),
+    password:document.getElementById('password').value
+  }}
+
+  function setMsg(text, ok){ msg.className='msg '+(ok?'ok':'err'); msg.textContent=text||''; }
+
+  function load(){
+    fetch(PREFIX+'/api/setup/devices',{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){
+      var list=(j.data||[]);
+      if(!list.length){ listEl.innerHTML='<div class="card"><div class="empty">还没有设备，在下面添加一台。</div></div>'; return; }
+      listEl.innerHTML=list.map(function(d){
+        return '<div class="card"><div class="dev">'+
+          '<span class="dot'+ (d.configured?'':' off') +'"></span>'+
+          '<div class="info"><div class="name">'+esc(d.name||d.model||d.ip)+'</div>'+
+          '<div class="meta">'+esc(d.model||'')+' · '+esc(d.ip)+':'+esc(d.port)+' · '+esc(d.username)+' · '+esc(d.mac||'')+'</div></div>'+
+          '<div style="display:flex;gap:8px"><button data-edit="'+esc(d.ip)+'">编辑</button>'+
+          '<button class="danger" data-del="'+esc(d.ip)+'">删除</button></div>'+
+        '</div></div>';
+      }).join('');
+    }).catch(function(e){ setMsg('读取设备列表失败：'+(e.message||e),false); });
+  }
+
+  listEl.addEventListener('click', function(ev){
+    var b=ev.target.closest('button'); if(!b) return;
+    var ip=b.getAttribute('data-del')||b.getAttribute('data-edit');
+    if(!ip) return;
+    if(b.hasAttribute('data-del')){
+      if(!confirm('确定删除 '+ip+' ？')) return;
+      fetch(PREFIX+'/api/setup/devices?ip='+encodeURIComponent(ip),{method:'DELETE'})
+        .then(function(r){return r.json()})
+        .then(function(j){ if(j.code!==200) throw new Error(j.message); setMsg('已删除 '+ip,true); load(); })
+        .catch(function(e){ setMsg(e.message||String(e),false); });
+      return;
+    }
+    // 编辑：把已知信息填进表单（密码需要重新输入）
+    fetch(PREFIX+'/api/setup/devices',{cache:'no-store'}).then(function(r){return r.json()}).then(function(j){
+      var d=(j.data||[]).filter(function(x){return x.ip===ip})[0];
+      if(!d) return;
+      editingIp=ip;
+      document.getElementById('name').value=d.name||'';
+      document.getElementById('ip').value=d.ip||'';
+      document.getElementById('port').value=d.port||80;
+      document.getElementById('username').value=d.username||'admin';
+      document.getElementById('password').value='';
+      document.getElementById('formTitle').textContent='编辑 '+d.ip;
+      document.getElementById('reset').style.display='inline-block';
+      setMsg('修改后点「保存并连接」，密码需要重新输入', true);
+      window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+    });
+  });
+
+  document.getElementById('reset').addEventListener('click', function(){
+    editingIp=null;
+    document.getElementById('formTitle').textContent='添加交换机';
+    document.getElementById('password').value='';
+    this.style.display='none';
+    setMsg('',true);
+  });
+
+  document.getElementById('test').addEventListener('click', function(){
+    var b=form();
+    if(!b.ip||!b.username||!b.password){ setMsg('IP、用户名、密码都要填',false); return; }
+    var btn=this; btn.disabled=true; setMsg('正在连接…',true);
+    fetch(PREFIX+'/api/setup/device/test',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})
+      .then(function(r){return r.json()})
+      .then(function(j){ if(j.code!==200) throw new Error(j.message); setMsg('连接成功：'+(j.data.model||'')+'（'+(j.data.ports||0)+' 个端口）',true); })
+      .catch(function(e){ setMsg(e.message||String(e),false); })
+      .then(function(){ btn.disabled=false; });
+  });
+
+  document.getElementById('save').addEventListener('click', function(){
+    var b=form();
+    if(!b.ip||!b.username||!b.password){ setMsg('IP、用户名、密码都要填',false); return; }
+    var btn=this; btn.disabled=true; setMsg('正在连接并保存…',true);
+    fetch(PREFIX+'/api/setup/devices',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(b)})
+      .then(function(r){return r.json()})
+      .then(function(j){
+        if(j.code!==200) throw new Error(j.message);
+        setMsg('已保存：'+(j.data.model||'')+' ('+j.data.ip+')，共 '+j.data.count+' 台',true);
+        document.getElementById('password').value='';
+        document.getElementById('reset').style.display='none';
+        document.getElementById('formTitle').textContent='添加交换机';
+        load();
+      })
+      .catch(function(e){ setMsg(e.message||String(e),false); })
+      .then(function(){ btn.disabled=false; });
+  });
+
+  var foundEl=document.getElementById('found');
+  document.getElementById('scan').addEventListener('click', function(){
+    var btn=this; btn.disabled=true; foundEl.innerHTML='<div class="empty">正在扫描…（约 3~10 秒）</div>';
+    fetch(PREFIX+'/api/setup/discover',{cache:'no-store'})
+      .then(function(r){return r.json()})
+      .then(function(j){
+        if(j.code!==200) throw new Error(j.message||'扫描失败');
+        var list=(j.data&&j.data.devices)||[];
+        if(!list.length){ foundEl.innerHTML='<div class="empty">没有发现水星交换机，请确认交换机与本机在同一网段，或在下方手动填写。</div>'; return; }
+        foundEl.innerHTML=list.map(function(d){
+          return '<div class="dev" style="padding:8px 0"><span class="dot"></span><div class="info">'+
+            '<div class="name">水星交换机</div><div class="meta">'+esc(d.ip)+(d.mac?' · '+esc(d.mac):'')+'</div></div>'+
+            '<button class="primary" data-pick="'+esc(d.ip)+'">配置此设备</button></div>';
+        }).join('');
+      })
+      .catch(function(e){ foundEl.innerHTML='<div class="msg err">'+esc(e.message||e)+'</div>'; })
+      .then(function(){ btn.disabled=false; });
+  });
+
+  foundEl.addEventListener('click', function(ev){
+    var b=ev.target.closest('button[data-pick]'); if(!b) return;
+    document.getElementById('ip').value=b.getAttribute('data-pick');
+    document.getElementById('password').focus();
+    setMsg('已选中 '+b.getAttribute('data-pick')+'，请输入密码后保存', true);
+  });
+
+  load();
+</script>
+</body>
+</html>

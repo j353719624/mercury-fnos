@@ -1,0 +1,5 @@
+#!/bin/bash
+### 卸载完成后清理残留
+pkill -9 -f "^/usr/local/apps/@appcenter/mercury/server/mercury_service" >/dev/null 2>&1 || true
+rm -f /tmp/mercury.pid /var/apps/mercury/target/mercury >/dev/null 2>&1 || true
+exit 0

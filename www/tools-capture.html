@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>抓包分析 · MERCURY</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --card: #ffffff;
+    --border: #e4e7ed;
+    --text: #303133;
+    --muted: #909399;
+    --dim: #a8abb2;
+    --field: #ffffff;
+    --field-border: #dcdfe6;
+    --out-bg: #fafafa;
+    --out-border: #e4e7ed;
+    --out-text: #303133;
+    --icon-tile: rgba(9, 9, 11, .08);
+    --icon-color: #09090b;
+    --primary: #409eff;
+    --success: #67c23a;
+    --danger: #f56c6c;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  html[data-theme="dark"] {
+    --bg: #121212;
+    --card: #141414;
+    --border: #1f2937;
+    --text: #e5eaf3;
+    --muted: #a3a6ad;
+    --dim: #8d9095;
+    --field: #1d1e1f;
+    --field-border: #4c4d4f;
+    --out-bg: #1d1e1f;
+    --out-border: #363637;
+    --out-text: #cfd3dc;
+    --icon-tile: #409eff;
+    --icon-color: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 1600px; margin: 0 auto; padding: 20px 28px 40px; }
+
+  /* 与测速页一致：gap 12 / py 12 / mb 16 / 底部分隔线 */
+  .head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0; margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .back {
+    width: 40px; height: 40px; border-radius: 50%; flex: none;
+    border: 1px solid var(--field-border); background: var(--card);
+    color: var(--muted); display: grid; place-items: center;
+    text-decoration: none; transition: all .18s ease;
+  }
+  .back:hover { color: var(--primary); border-color: var(--primary); }
+  .back svg { width: 14px; height: 14px; }
+  .head-icon {
+    width: 36px; height: 36px; border-radius: 8px; flex: none;
+    display: grid; place-items: center;
+    background: var(--icon-tile); color: var(--icon-color);
+  }
+  .head-icon svg { width: 18px; height: 18px; }
+  .head-text { min-width: 0; flex: 1; }
+  .head-text h1 { margin: 0; font-size: 16px; font-weight: 600; line-height: 24px; }
+  .head-text p { margin: 2px 0 0; font-size: 12px; color: var(--muted); line-height: 16.5px; }
+
+  /* 内容卡片：圆角 16 / padding 32 / 1px 边框 */
+  .panel {
+    border: 1px solid var(--border); border-radius: 16px;
+    background: var(--card); padding: 32px; min-height: 485px;
+  }
+  .panel-head { text-align: center; margin-bottom: 28px; }
+  .panel-head h2 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: .3px; }
+  .panel-head p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+
+  .form { display: flex; gap: 12px; align-items: flex-end; justify-content: center; flex-wrap: wrap; max-width: 760px; margin: 0 auto; }
+  .field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 260px; min-width: 180px; }
+  .field.narrow { flex: 0 0 130px; min-width: 110px; }
+  .field label { font-size: 13px; color: var(--dim); }
+  input {
+    width: 100%; height: 40px; padding: 0 12px; border-radius: 6px; outline: none;
+    background: var(--field); border: 1px solid var(--field-border);
+    color: var(--text); font-size: 14px; font-family: inherit; transition: border-color .18s ease;
+  }
+  select {
+    width: 100%; height: 40px; padding: 0 12px; border-radius: 6px; outline: none;
+    background: var(--field); border: 1px solid var(--field-border);
+    color: var(--text); font-size: 14px; font-family: inherit;
+  }
+  input::placeholder { color: var(--dim); }
+  input:focus { border-color: var(--primary); }
+  button.primary {
+    height: 40px; padding: 0 22px; border-radius: 999px; border: none; cursor: pointer;
+    background: var(--primary); color: #fff; font-size: 14px; font-weight: 500; font-family: inherit;
+    transition: filter .18s ease;
+  }
+  button.primary:hover { filter: brightness(1.08); }
+  button.primary:disabled { opacity: .6; cursor: not-allowed; filter: none; }
+
+  .out {
+    margin: 24px auto 0; max-width: 920px; padding: 14px 16px; min-height: 168px;
+    border-radius: 8px; background: var(--out-bg); border: 1px solid var(--out-border);
+    color: var(--out-text); font-family: var(--mono); font-size: 12.5px; line-height: 1.75;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  .out.err { color: var(--danger); }
+
+  .foot { margin: 12px auto 0; max-width: 920px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+  .badge { display: none; align-items: center; gap: 6px; font-size: 12px; }
+  .badge.show { display: inline-flex; }
+  .badge.ok { color: var(--success); }
+  .badge.err { color: var(--danger); }
+  .spinner {
+    width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--field-border);
+    border-top-color: var(--primary); animation: spin .8s linear infinite; display: none;
+  }
+  .spinner.show { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 640px) {
+    .page { padding: 16px 16px 32px; }
+    .panel { padding: 20px 16px 24px; }
+  }
+
+
+  /* 使用说明 */
+  /* 与测速页一致的灰色分段切换 */
+  .tabs {
+    display: inline-flex; gap: 2px; padding: 4px; margin: 0 0 16px;
+    border-radius: 999px; background: rgba(0, 0, 0, .045); border: 1px solid var(--border);
+  }
+  html[data-theme="dark"] .tabs { background: rgba(255, 255, 255, .06); }
+  .tabs button {
+    height: 32px; padding: 0 18px; border-radius: 999px; cursor: pointer;
+    border: 1px solid transparent; background: transparent; color: var(--muted);
+    font-size: 13px; font-family: inherit; transition: all .16s ease;
+  }
+  .tabs button:hover { color: var(--text); }
+  .tabs button.on {
+    background: var(--card); border-color: var(--border); color: var(--text);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+  }
+  .doc-title { margin: 0 0 10px; font-size: 26px; font-weight: 700; letter-spacing: .2px; line-height: 1.3; }
+  .doc-lead { margin: 0 0 22px; font-size: 13.5px; line-height: 1.9; color: var(--text); }
+  .doc-fig {
+    margin: 0 auto 28px; padding: 18px; border-radius: 12px; max-width: 730px;
+    background: #f7f8fa; border: 1px solid #e8eaf0; text-align: center;
+  }
+  .doc-fig svg { width: 100%; height: 244px; display: block; margin: 0 auto; }
+  html[data-theme="dark"] .doc-fig { background: #f2f3f5; border-color: #dfe2e8; }
+  .doc h3 {
+    margin: 26px 0 10px; padding-bottom: 8px; font-size: 14px; font-weight: 700;
+    border-bottom: 1px solid var(--border);
+  }
+  .doc h3:first-of-type { margin-top: 0; }
+  .doc p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.9; color: var(--text); }
+  .doc ul, .doc ol { margin: 0 0 10px; padding-left: 22px; font-size: 13.5px; line-height: 1.9; }
+  .doc li { margin: 2px 0; }
+  .doc code {
+    padding: 1px 5px; border-radius: 4px; background: var(--out-bg);
+    border: 1px solid var(--out-border); font-family: var(--mono); font-size: 12px;
+  }
+  .doc .note { margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="head">
+    <a class="back" id="back" href="#" aria-label="返回">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="head-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></div>
+    <div class="head-text">
+      <h1>抓包分析</h1>
+      <p>在线抓取网络报文并下载分析</p>
+    </div>
+  </header>
+
+  
+    <div class="tabs" id="tabs">
+      <button class="on" data-p="main">抓包分析</button>
+      <button data-p="doc">使用说明</button>
+    </div>
+
+  <section class="panel" id="main">
+    <div class="panel-head">
+      <h2>抓包分析</h2>
+      <p>在线抓取网络报文并下载分析</p>
+    </div>
+
+    <div class="form">
+      <div class="field">
+        <label>网卡</label>
+        <select id="iface"></select>
+      </div>
+      <div class="field narrow">
+        <label>时长（秒）</label>
+        <input id="secs" type="number" min="1" max="30" value="10" />
+      </div>
+      <button class="primary" id="run" data-label="开始抓包">开始抓包</button>
+    </div>
+
+    <pre class="out" id="out">就绪。输入目标后点击按钮开始。</pre>
+    <div class="foot" id="dlwrap" style="display:none"><a id="dl" class="primary" style="text-decoration:none" href="#">下载 pcap 文件</a></div>
+    <div class="foot">
+      <span class="spinner" id="spin"></span>
+      <span class="badge" id="status"></span>
+    </div>
+  </section>
+  <section class="panel" id="doc" style="display:none">
+    <div class="doc">
+      <h2 class="doc-title">抓包分析使用说明</h2>
+      <p class="doc-lead">本工具用于在飞牛网卡上实时抓取报文并导出 pcap。适合排查“报文到底有没有到达”“有没有重传”“VLAN 标签对不对”这类只能看包才能确认的问题。</p>
+      <div class="doc-fig"><svg viewBox="0 0 720 230" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4f6ef7"/></marker><marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#3fae5a"/></marker></defs>
+  <text x="360" y="26" text-anchor="middle" font-size="12" fill="#606266">抓包链路：网卡原始套接字 → pcap 文件 → Wireshark</text>
+  
+  <rect x="30" y="76" width="150" height="78" rx="10" fill="#ffffff" stroke="#dfe3ec"/>
+  <text x="105" y="111" text-anchor="middle" font-size="14" font-weight="600" fill="#303133">网卡</text>
+  <text x="105" y="131" text-anchor="middle" font-size="11" fill="#909399">eth0 / enp*</text>
+  
+  <rect x="240" y="76" width="160" height="78" rx="10" fill="#ffffff" stroke="#dfe3ec"/>
+  <text x="320" y="111" text-anchor="middle" font-size="14" font-weight="600" fill="#303133">原始套接字</text>
+  <text x="320" y="131" text-anchor="middle" font-size="11" fill="#909399">AF_PACKET</text>
+  
+  <rect x="460" y="76" width="140" height="78" rx="10" fill="#f2f6ff" stroke="#dfe3ec"/>
+  <text x="530" y="111" text-anchor="middle" font-size="14" font-weight="600" fill="#303133">pcap 文件</text>
+  <text x="530" y="131" text-anchor="middle" font-size="11" fill="#909399">单次 ≤ 30s</text>
+  <line x1="188" y1="115" x2="232" y2="115" stroke="#4f6ef7" stroke-width="2" marker-end="url(#ar)"/>
+  <line x1="408" y1="115" x2="452" y2="115" stroke="#4f6ef7" stroke-width="2" marker-end="url(#ar)"/>
+  <line x1="608" y1="115" x2="650" y2="115" stroke="#3fae5a" stroke-width="2" marker-end="url(#ag)"/>
+  <text x="676" y="119" font-size="11" fill="#3fae5a">Wireshark</text>
+  <text x="360" y="192" text-anchor="middle" font-size="11" fill="#909399">截断长度（snaplen）越小，文件越小</text>
+</svg></div>
+
+      <p>本工具在飞牛网卡上实时抓取网络报文并生成 pcap 文件，下载后可用 Wireshark 打开分析。</p>
+      <h3>工作原理</h3>
+      <ul>
+        <li>后端直接打开网卡的原始套接字（<code>AF_PACKET</code>），按标准 pcap 格式写入，不依赖 tcpdump。</li>
+        <li>抓包单次最长 30 秒，且同一时间只允许一个抓包任务。</li>
+        <li>可选抓包长度（snaplen）：取较小值可减小文件体积，但会截断报文尾部。</li>
+      </ul>
+      <h3>使用步骤</h3>
+      <ol>
+        <li>选择网卡（默认为承载应用流量的那块）。</li>
+        <li>设置抓包时长与抓包长度。</li>
+        <li>复现问题后点击「开始抓包」，结束后点击「下载 pcap 文件」。</li>
+        <li>用 Wireshark 打开，按 IP、端口或协议过滤。</li>
+      </ol>
+      <h3>结果解读与建议</h3>
+      <ul>
+        <li>抓包期间流量越大，文件越大；排查具体问题时尽量缩短时长。</li>
+        <li>常见用途：确认报文是否到达、看 TCP 重传与握手、判断 VLAN 标签是否正确。</li>
+        <li>pcap 中可能包含明文账号密码等内容，请妥善保管，排查完及时删除。</li>
+      </ul>
+      <div class="note">抓包会占用一定 CPU 和磁盘写入，非排查期间建议不要长时间开启。</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // 跟随应用主题：应用用 vueuse 的 color-scheme 记录 light/dark/auto
+  (function () {
+    var mode = 'auto';
+    try { mode = localStorage.getItem('vueuse-color-scheme') || 'auto'; } catch (e) {}
+    if (mode !== 'light' && mode !== 'dark') {
+      mode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', mode);
+  })();
+
+  // 定点返回诊断工具页，不用 history.back()，避免跳到别的页面
+  document.getElementById('back').addEventListener('click', function (ev) {
+    ev.preventDefault();
+    if (window.parent !== window && window.parent.__mercuryCloseTool) {
+      window.parent.__mercuryCloseTool();
+      return;
+    }
+    location.href = './#/diagnostic-tools';
+  });
+
+  var PREFIX = (function () {
+    var p = location.pathname;
+    var i = p.lastIndexOf('/');
+    return i >= 0 ? p.slice(0, i) : '';
+  })();
+
+  var out = document.getElementById('out');
+  var statusEl = document.getElementById('status');
+  var spin = document.getElementById('spin');
+  var runBtn = document.getElementById('run');
+
+  function setStatus(ok) {
+    statusEl.className = 'badge show ' + (ok ? 'ok' : 'err');
+    statusEl.textContent = ok ? '完成' : '失败';
+  }
+  function fail(msg) {
+    out.className = 'out err';
+    out.textContent = msg;
+    statusEl.className = 'badge';
+  }
+  function setBusy(on) {
+    spin.className = 'spinner' + (on ? ' show' : '');
+    runBtn.disabled = on;
+    runBtn.textContent = on ? '执行中…' : runBtn.dataset.label;
+  }
+  async function run(url, tip) {
+    setBusy(true);
+    out.className = 'out';
+    out.textContent = tip;
+    statusEl.className = 'badge';
+    try {
+      var r = await fetch(PREFIX + url, { cache: 'no-store' });
+      var j = await r.json();
+      if (j.code !== 200 || !j.data) throw new Error(j.message || '请求失败');
+      out.textContent = j.data.output || '(无输出)';
+      setStatus(!!j.data.ok);
+    } catch (e) {
+      out.className = 'out err';
+      out.textContent = '出错：' + (e.message || e);
+      setStatus(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+  runBtn.addEventListener('click', onRun);
+  document.querySelectorAll('input').forEach(function (el) {
+    el.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') onRun(); });
+  });
+
+  async function onRun() {
+    var iface = document.getElementById('iface').value;
+    var secs = parseInt(document.getElementById('secs').value || '10', 10);
+    if (!iface) return fail('请选择网卡');
+    if (!(secs >= 1 && secs <= 30)) return fail('时长需在 1-30 秒之间');
+    setBusy(true);
+    out.className = 'out';
+    out.textContent = '正在 ' + iface + ' 上抓包 ' + secs + ' 秒…';
+    statusEl.className = 'badge';
+    try {
+      var r = await fetch(PREFIX + '/api/tools/capture?iface=' + encodeURIComponent(iface) + '&seconds=' + secs, { method: 'POST' });
+      if (!r.ok) {
+        var t = await r.text(), m = '';
+        try { m = JSON.parse(t).message; } catch (e) {}
+        throw new Error(m || ('HTTP ' + r.status));
+      }
+      var blob = await r.blob();
+      var pk = r.headers.get('X-Packet-Count') || '?';
+      var by = parseInt(r.headers.get('X-Byte-Count') || '0', 10);
+      var stamp = new Date().toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15);
+      var name = 'capture-' + iface + '-' + stamp + '.pcap';
+      var a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = name;
+      document.body.appendChild(a); a.click(); a.remove();
+      var dl = document.getElementById('dl');
+      if (dl) { dl.href = URL.createObjectURL(blob); dl.download = name; document.getElementById('dlwrap').style.display = 'flex'; }
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 8000);
+      out.textContent = '抓包完成\n网卡：' + iface + '\n时长：' + secs + ' 秒\n报文：' + pk + ' 个\n大小：' + (by / 1024).toFixed(1) + ' KB\n已开始下载：' + name;
+      setStatus(true);
+    } catch (e) {
+      out.className = 'out err';
+      out.textContent = '出错：' + (e.message || e);
+      setStatus(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+  (async function () {
+    var sel = document.getElementById('iface');
+    try {
+      var r = await fetch(PREFIX + '/api/tools/ifaces', { cache: 'no-store' });
+      var j = await r.json();
+      var list = (j.data && j.data.list) || [];
+      sel.innerHTML = '';
+      list.filter(function (i) { return !i.loopback && !/^veth/.test(i.name) && i.name !== 'ovs-system' && i.name !== 'lo'; }).forEach(function (i) {
+        var o = document.createElement('option');
+        o.value = i.name;
+        o.textContent = i.name + (i.addrs && i.addrs.length ? '   ' + i.addrs[0] : '');
+        sel.appendChild(o);
+      });
+    } catch (e) { fail('读取网卡列表失败：' + e.message); }
+  })();
+</script>
+<script>
+  (function () {
+    var tabs = document.getElementById('tabs');
+    var main = document.getElementById('main');
+    var doc = document.getElementById('doc');
+    if (!tabs || !main || !doc) return;
+    tabs.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button');
+      if (!b) return;
+      var showDoc = b.dataset.p === 'doc';
+      main.style.display = showDoc ? 'none' : '';
+      doc.style.display = showDoc ? '' : 'none';
+      Array.prototype.forEach.call(tabs.children, function (x) {
+        x.classList.toggle('on', x === b);
+      });
+      window.scrollTo(0, 0);
+    });
+  })();
+</script>
+</body>
+</html>

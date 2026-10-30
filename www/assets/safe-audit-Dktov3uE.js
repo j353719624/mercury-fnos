@@ -1,0 +1,1 @@
+import{$i as e,Ni as r}from"./index-quJxVxr2.js";import{t as i}from"./_plugin-vue_export-helper-B4KiXbT9.js";var t=i({},[["render",function(i,t){return e(),r("div",null,"Safe Audit Page")}]]);export{t as default};

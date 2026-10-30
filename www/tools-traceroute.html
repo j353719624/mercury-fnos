@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>路由追踪 · MERCURY</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --card: #ffffff;
+    --border: #e4e7ed;
+    --text: #303133;
+    --muted: #909399;
+    --dim: #a8abb2;
+    --field: #ffffff;
+    --field-border: #dcdfe6;
+    --out-bg: #fafafa;
+    --out-border: #e4e7ed;
+    --out-text: #303133;
+    --icon-tile: rgba(9, 9, 11, .08);
+    --icon-color: #09090b;
+    --primary: #409eff;
+    --success: #67c23a;
+    --danger: #f56c6c;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  html[data-theme="dark"] {
+    --bg: #121212;
+    --card: #141414;
+    --border: #1f2937;
+    --text: #e5eaf3;
+    --muted: #a3a6ad;
+    --dim: #8d9095;
+    --field: #1d1e1f;
+    --field-border: #4c4d4f;
+    --out-bg: #1d1e1f;
+    --out-border: #363637;
+    --out-text: #cfd3dc;
+    --icon-tile: #409eff;
+    --icon-color: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 1600px; margin: 0 auto; padding: 20px 28px 40px; }
+
+  /* 与测速页一致：gap 12 / py 12 / mb 16 / 底部分隔线 */
+  .head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0; margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .back {
+    width: 40px; height: 40px; border-radius: 50%; flex: none;
+    border: 1px solid var(--field-border); background: var(--card);
+    color: var(--muted); display: grid; place-items: center;
+    text-decoration: none; transition: all .18s ease;
+  }
+  .back:hover { color: var(--primary); border-color: var(--primary); }
+  .back svg { width: 14px; height: 14px; }
+  .head-icon {
+    width: 36px; height: 36px; border-radius: 8px; flex: none;
+    display: grid; place-items: center;
+    background: var(--icon-tile); color: var(--icon-color);
+  }
+  .head-icon svg { width: 18px; height: 18px; }
+  .head-text { min-width: 0; flex: 1; }
+  .head-text h1 { margin: 0; font-size: 16px; font-weight: 600; line-height: 24px; }
+  .head-text p { margin: 2px 0 0; font-size: 12px; color: var(--muted); line-height: 16.5px; }
+
+  /* 内容卡片：圆角 16 / padding 32 / 1px 边框 */
+  .panel {
+    border: 1px solid var(--border); border-radius: 16px;
+    background: var(--card); padding: 32px; min-height: 485px;
+  }
+  .panel-head { text-align: center; margin-bottom: 28px; }
+  .panel-head h2 { margin: 0; font-size: 18px; font-weight: 700; letter-spacing: .3px; }
+  .panel-head p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+
+  .form { display: flex; gap: 12px; align-items: flex-end; justify-content: center; flex-wrap: wrap; max-width: 760px; margin: 0 auto; }
+  .field { display: flex; flex-direction: column; gap: 6px; flex: 1 1 260px; min-width: 180px; }
+  .field.narrow { flex: 0 0 130px; min-width: 110px; }
+  .field label { font-size: 13px; color: var(--dim); }
+  input {
+    width: 100%; height: 40px; padding: 0 12px; border-radius: 6px; outline: none;
+    background: var(--field); border: 1px solid var(--field-border);
+    color: var(--text); font-size: 14px; font-family: inherit; transition: border-color .18s ease;
+  }
+  select {
+    width: 100%; height: 40px; padding: 0 12px; border-radius: 6px; outline: none;
+    background: var(--field); border: 1px solid var(--field-border);
+    color: var(--text); font-size: 14px; font-family: inherit;
+  }
+  input::placeholder { color: var(--dim); }
+  input:focus { border-color: var(--primary); }
+  button.primary {
+    height: 40px; padding: 0 22px; border-radius: 999px; border: none; cursor: pointer;
+    background: var(--primary); color: #fff; font-size: 14px; font-weight: 500; font-family: inherit;
+    transition: filter .18s ease;
+  }
+  button.primary:hover { filter: brightness(1.08); }
+  button.primary:disabled { opacity: .6; cursor: not-allowed; filter: none; }
+
+  .out {
+    margin: 24px auto 0; max-width: 920px; padding: 14px 16px; min-height: 168px;
+    border-radius: 8px; background: var(--out-bg); border: 1px solid var(--out-border);
+    color: var(--out-text); font-family: var(--mono); font-size: 12.5px; line-height: 1.75;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  .out.err { color: var(--danger); }
+
+  .foot { margin: 12px auto 0; max-width: 920px; display: flex; justify-content: center; align-items: center; gap: 8px; }
+  .badge { display: none; align-items: center; gap: 6px; font-size: 12px; }
+  .badge.show { display: inline-flex; }
+  .badge.ok { color: var(--success); }
+  .badge.err { color: var(--danger); }
+  .spinner {
+    width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--field-border);
+    border-top-color: var(--primary); animation: spin .8s linear infinite; display: none;
+  }
+  .spinner.show { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 640px) {
+    .page { padding: 16px 16px 32px; }
+    .panel { padding: 20px 16px 24px; }
+  }
+
+
+  /* 使用说明 */
+  /* 与测速页一致的灰色分段切换 */
+  .tabs {
+    display: inline-flex; gap: 2px; padding: 4px; margin: 0 0 16px;
+    border-radius: 999px; background: rgba(0, 0, 0, .045); border: 1px solid var(--border);
+  }
+  html[data-theme="dark"] .tabs { background: rgba(255, 255, 255, .06); }
+  .tabs button {
+    height: 32px; padding: 0 18px; border-radius: 999px; cursor: pointer;
+    border: 1px solid transparent; background: transparent; color: var(--muted);
+    font-size: 13px; font-family: inherit; transition: all .16s ease;
+  }
+  .tabs button:hover { color: var(--text); }
+  .tabs button.on {
+    background: var(--card); border-color: var(--border); color: var(--text);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, .06);
+  }
+  .doc-title { margin: 0 0 10px; font-size: 26px; font-weight: 700; letter-spacing: .2px; line-height: 1.3; }
+  .doc-lead { margin: 0 0 22px; font-size: 13.5px; line-height: 1.9; color: var(--text); }
+  .doc-fig {
+    margin: 0 auto 28px; padding: 18px; border-radius: 12px; max-width: 730px;
+    background: #f7f8fa; border: 1px solid #e8eaf0; text-align: center;
+  }
+  .doc-fig svg { width: 100%; height: 244px; display: block; margin: 0 auto; }
+  html[data-theme="dark"] .doc-fig { background: #f2f3f5; border-color: #dfe2e8; }
+  .doc h3 {
+    margin: 26px 0 10px; padding-bottom: 8px; font-size: 14px; font-weight: 700;
+    border-bottom: 1px solid var(--border);
+  }
+  .doc h3:first-of-type { margin-top: 0; }
+  .doc p { margin: 0 0 10px; font-size: 13.5px; line-height: 1.9; color: var(--text); }
+  .doc ul, .doc ol { margin: 0 0 10px; padding-left: 22px; font-size: 13.5px; line-height: 1.9; }
+  .doc li { margin: 2px 0; }
+  .doc code {
+    padding: 1px 5px; border-radius: 4px; background: var(--out-bg);
+    border: 1px solid var(--out-border); font-family: var(--mono); font-size: 12px;
+  }
+  .doc .note { margin-top: 18px; }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="head">
+    <a class="back" id="back" href="#" aria-label="返回">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="head-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg></div>
+    <div class="head-text">
+      <h1>路由追踪</h1>
+      <p>追踪数据包到目标主机经过的网络节点</p>
+    </div>
+  </header>
+
+  
+    <div class="tabs" id="tabs">
+      <button class="on" data-p="main">路由追踪</button>
+      <button data-p="doc">使用说明</button>
+    </div>
+
+  <section class="panel" id="main">
+    <div class="panel-head">
+      <h2>路由追踪</h2>
+      <p>追踪数据包到目标主机经过的网络节点</p>
+    </div>
+
+    <div class="form">
+      <div class="field">
+        <label>目标主机（IP 或域名）</label>
+        <input id="host" placeholder="例如 www.baidu.com" autofocus />
+      </div>
+      <div class="field narrow">
+        <label>最大跳数</label>
+        <input id="max" type="number" min="1" max="30" value="20" />
+      </div>
+      <button class="primary" id="run" data-label="开始追踪">开始追踪</button>
+    </div>
+
+    <pre class="out" id="out">就绪。输入目标后点击按钮开始。</pre>
+    <div class="foot" id="dlwrap" style="display:none"><a id="dl" class="primary" style="text-decoration:none" href="#">下载 pcap 文件</a></div>
+    <div class="foot">
+      <span class="spinner" id="spin"></span>
+      <span class="badge" id="status"></span>
+    </div>
+  </section>
+  <section class="panel" id="doc" style="display:none">
+    <div class="doc">
+      <h2 class="doc-title">路由追踪使用说明</h2>
+      <p class="doc-lead">本工具用于查看数据包从飞牛到目标经过了哪些路由设备。当目标是“能通但很慢”或“中间某一跳之后断了”时，先看这张路径图。</p>
+      <div class="doc-fig"><svg viewBox="0 0 720 210" xmlns="http://www.w3.org/2000/svg"><defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#4f6ef7"/></marker><marker id="ag" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#3fae5a"/></marker></defs>
+  <text x="360" y="26" text-anchor="middle" font-size="12" fill="#606266">逐跳追踪：TTL 从 1 递增，直到到达目标</text>
+  
+  <rect x="20" y="76" width="140" height="66" rx="10" fill="#ffffff" stroke="#dfe3ec"/>
+  <text x="90" y="105" text-anchor="middle" font-size="14" font-weight="600" fill="#303133">飞牛主机</text>
+  <text x="90" y="125" text-anchor="middle" font-size="11" fill="#909399">起点</text>
+  
+  <rect x="205" y="76" width="130" height="66" rx="10" fill="#ffffff" stroke="#dfe3ec"/>
+  <text x="270" y="105" text-anchor="middle" font-size="14" font-weight="600" fill="#303133">路由 1</text>
+  <text x="270" y="125" text-anchor="middle" font-size="11" fill="#909399">TTL=1</text>
+  
+  <rect x="375" y="76" width="130" height="66" rx="10" fill="#ffffff" stroke="#dfe3ec"/>
+  <text x="440" y="105" text-anchor="middle" font-size="14" font-weight="600" fill="#303133">路由 2</text>
+  <text x="440" y="125" text-anchor="middle" font-size="11" fill="#909399">TTL=2</text>
+  
+  <rect x="545" y="76" width="140" height="66" rx="10" fill="#ffffff" stroke="#dfe3ec"/>
+  <text x="615" y="105" text-anchor="middle" font-size="14" font-weight="600" fill="#303133">目标主机</text>
+  <text x="615" y="125" text-anchor="middle" font-size="11" fill="#909399">TTL=n</text>
+  <line x1="164" y1="109" x2="197" y2="109" stroke="#4f6ef7" stroke-width="2" marker-end="url(#ar)"/>
+  <line x1="339" y1="109" x2="367" y2="109" stroke="#4f6ef7" stroke-width="2" marker-end="url(#ar)"/>
+  <line x1="509" y1="109" x2="537" y2="109" stroke="#4f6ef7" stroke-width="2" marker-end="url(#ar)"/>
+  <text x="360" y="172" text-anchor="middle" font-size="11" fill="#909399">每跳显示 IP 与耗时；显示 * 表示该跳不回探测包</text>
+</svg></div>
+
+      <p>本工具追踪从飞牛到目标主机的整条路径，逐跳列出中间经过的路由设备，用于定位“哪一跳开始不通”。</p>
+      <h3>工作原理</h3>
+      <ul>
+        <li>调用飞牛系统的 <code>traceroute</code>，逐跳增加 TTL 发送探测包。</li>
+        <li>关闭反向域名解析（<code>-n</code>），直接显示 IP，速度快且不受 DNS 影响。</li>
+        <li>每跳默认探测 1 次，单跳超时 1 秒。</li>
+      </ul>
+      <h3>使用步骤</h3>
+      <ol>
+        <li>输入目标 IP 或域名。</li>
+        <li>设置最大跳数（1-30），默认 20。</li>
+        <li>点击「开始追踪」。</li>
+      </ol>
+      <h3>结果解读</h3>
+      <ul>
+        <li>每行是一跳，显示跳数、IP 和耗时。</li>
+        <li>出现 <code>*</code> 表示该跳没有回应探测包，很常见（路由器默认不回），不代表链路中断。</li>
+        <li>如果从某一跳之后全部超时而目标始终没出现，问题多半出在该跳之后。</li>
+      </ul>
+      <div class="note">追踪只能看到去程路径；回程路径可能不同，这是正常的网络现象。</div>
+    </div>
+  </section>
+
+</div>
+
+<script>
+  // 跟随应用主题：应用用 vueuse 的 color-scheme 记录 light/dark/auto
+  (function () {
+    var mode = 'auto';
+    try { mode = localStorage.getItem('vueuse-color-scheme') || 'auto'; } catch (e) {}
+    if (mode !== 'light' && mode !== 'dark') {
+      mode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', mode);
+  })();
+
+  // 定点返回诊断工具页，不用 history.back()，避免跳到别的页面
+  document.getElementById('back').addEventListener('click', function (ev) {
+    ev.preventDefault();
+    if (window.parent !== window && window.parent.__mercuryCloseTool) {
+      window.parent.__mercuryCloseTool();
+      return;
+    }
+    location.href = './#/diagnostic-tools';
+  });
+
+  var PREFIX = (function () {
+    var p = location.pathname;
+    var i = p.lastIndexOf('/');
+    return i >= 0 ? p.slice(0, i) : '';
+  })();
+
+  var out = document.getElementById('out');
+  var statusEl = document.getElementById('status');
+  var spin = document.getElementById('spin');
+  var runBtn = document.getElementById('run');
+
+  function setStatus(ok) {
+    statusEl.className = 'badge show ' + (ok ? 'ok' : 'err');
+    statusEl.textContent = ok ? '完成' : '失败';
+  }
+  function fail(msg) {
+    out.className = 'out err';
+    out.textContent = msg;
+    statusEl.className = 'badge';
+  }
+  function setBusy(on) {
+    spin.className = 'spinner' + (on ? ' show' : '');
+    runBtn.disabled = on;
+    runBtn.textContent = on ? '执行中…' : runBtn.dataset.label;
+  }
+  async function run(url, tip) {
+    setBusy(true);
+    out.className = 'out';
+    out.textContent = tip;
+    statusEl.className = 'badge';
+    try {
+      var r = await fetch(PREFIX + url, { cache: 'no-store' });
+      var j = await r.json();
+      if (j.code !== 200 || !j.data) throw new Error(j.message || '请求失败');
+      out.textContent = j.data.output || '(无输出)';
+      setStatus(!!j.data.ok);
+    } catch (e) {
+      out.className = 'out err';
+      out.textContent = '出错：' + (e.message || e);
+      setStatus(false);
+    } finally {
+      setBusy(false);
+    }
+  }
+  runBtn.addEventListener('click', onRun);
+  document.querySelectorAll('input').forEach(function (el) {
+    el.addEventListener('keydown', function (ev) { if (ev.key === 'Enter') onRun(); });
+  });
+
+  function onRun() {
+    var host = document.getElementById('host').value.trim();
+    if (!host) return fail('请输入目标主机');
+    var max = document.getElementById('max').value || 20;
+    run('/api/tools/traceroute?host=' + encodeURIComponent(host) + '&max=' + encodeURIComponent(max), '正在追踪到 ' + host + ' 的路径…');
+  }
+</script>
+<script>
+  (function () {
+    var tabs = document.getElementById('tabs');
+    var main = document.getElementById('main');
+    var doc = document.getElementById('doc');
+    if (!tabs || !main || !doc) return;
+    tabs.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button');
+      if (!b) return;
+      var showDoc = b.dataset.p === 'doc';
+      main.style.display = showDoc ? 'none' : '';
+      doc.style.display = showDoc ? '' : 'none';
+      Array.prototype.forEach.call(tabs.children, function (x) {
+        x.classList.toggle('on', x === b);
+      });
+      window.scrollTo(0, 0);
+    });
+  })();
+</script>
+</body>
+</html>

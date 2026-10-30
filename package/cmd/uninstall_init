@@ -1,0 +1,11 @@
+#!/bin/bash
+### 卸载前停止后端（只按本应用路径匹配，限时退出）
+APP_BIN="/usr/local/apps/@appcenter/mercury/server/mercury_service"
+pkill -TERM -f "^$APP_BIN" 2>/dev/null || true
+for i in {1..10}; do
+  pgrep -f "^$APP_BIN" >/dev/null 2>&1 || break
+  sleep 0.2
+done
+pkill -9 -f "^$APP_BIN" >/dev/null 2>&1 || true
+rm -f /tmp/mercury.pid /var/apps/mercury/target/mercury >/dev/null 2>&1 || true
+exit 0

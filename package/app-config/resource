@@ -1,0 +1,28 @@
+{
+    "data-share":
+    {
+        "shares":
+        [
+            {
+                "name": "MERCURY",
+                "permission":
+                {
+                    "rw":
+                    [
+                        "mercury"
+                    ]
+                }
+            },
+            {
+                "name": "MERCURY/data",
+                "permission":
+                {
+                    "rw":
+                    [
+                        "MERCURY"
+                    ]
+                }
+            }
+        ]
+    }
+}

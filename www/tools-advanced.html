@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>设备高级设置 · MERCURY</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --card: #ffffff;
+    --border: #e4e7ed;
+    --text: #303133;
+    --muted: #909399;
+    --dim: #a8abb2;
+    --field: #ffffff;
+    --field-border: #dcdfe6;
+    --out-bg: #fafafa;
+    --out-border: #e4e7ed;
+    --out-text: #303133;
+    --icon-tile: rgba(9, 9, 11, .08);
+    --icon-color: #09090b;
+    --primary: #409eff;
+    --success: #67c23a;
+    --danger: #f56c6c;
+    --warn: #e6a23c;
+    --soft: #f5f7fa;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  html[data-theme="dark"] {
+    --bg: #121212;
+    --card: #141414;
+    --border: #1f2937;
+    --text: #e5eaf3;
+    --muted: #a3a6ad;
+    --dim: #8d9095;
+    --field: #1d1e1f;
+    --field-border: #4c4d4f;
+    --out-bg: #1d1e1f;
+    --out-border: #363637;
+    --out-text: #cfd3dc;
+    --icon-tile: #409eff;
+    --icon-color: #ffffff;
+    --soft: #191a1c;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 1600px; margin: 0 auto; padding: 20px 28px 40px; }
+
+  .head {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 0; margin-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .back {
+    width: 40px; height: 40px; border-radius: 50%; flex: none;
+    border: 1px solid var(--field-border); background: var(--card);
+    color: var(--muted); display: grid; place-items: center;
+    text-decoration: none; transition: all .18s ease;
+  }
+  .back:hover { color: var(--primary); border-color: var(--primary); }
+  .back svg { width: 14px; height: 14px; }
+  .head-icon {
+    width: 36px; height: 36px; border-radius: 8px; flex: none;
+    display: grid; place-items: center;
+    background: var(--icon-tile); color: var(--icon-color);
+  }
+  .head-icon svg { width: 18px; height: 18px; }
+  .head-text { min-width: 0; flex: 1; }
+  .head-text h1 { margin: 0; font-size: 16px; font-weight: 600; line-height: 24px; }
+  .head-text p { margin: 2px 0 0; font-size: 12px; color: var(--muted); line-height: 16.5px; }
+
+  .panel {
+    border: 1px solid var(--border); border-radius: 16px;
+    background: var(--card); padding: 24px 32px 32px; min-height: 520px;
+  }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 20px; }
+  .tab {
+    height: 34px; padding: 0 14px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--field-border); background: var(--card); color: var(--muted);
+    font-size: 13px; font-family: inherit; transition: all .16s ease;
+  }
+  .tab:hover { color: var(--primary); border-color: var(--primary); }
+  .tab.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+
+  .view-head { margin-bottom: 18px; }
+  .view-head h2 { margin: 0; font-size: 17px; font-weight: 700; }
+  .view-head p { margin: 4px 0 0; font-size: 12px; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th, td { padding: 9px 10px; text-align: left; border-bottom: 1px solid var(--border); }
+  th { color: var(--dim); font-weight: 600; font-size: 12px; background: var(--soft); }
+  tr:last-child td { border-bottom: none; }
+  td.num, th.num { text-align: right; font-family: var(--mono); }
+
+  .row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; margin-top: 16px; }
+  .f { display: flex; flex-direction: column; gap: 6px; min-width: 140px; }
+  .f > label { font-size: 12px; color: var(--dim); }
+  input, select {
+    height: 36px; padding: 0 10px; border-radius: 6px; outline: none;
+    background: var(--field); border: 1px solid var(--field-border);
+    color: var(--text); font-size: 13px; font-family: inherit;
+  }
+  input:focus, select:focus { border-color: var(--primary); }
+  input[type="checkbox"], input[type="radio"] { height: auto; }
+  button.primary, a.primary {
+    height: 36px; padding: 0 18px; border-radius: 6px; border: none; cursor: pointer;
+    background: var(--primary); color: #fff; font-size: 13px; font-weight: 500;
+    font-family: inherit; text-decoration: none; display: inline-flex;
+    align-items: center; justify-content: center; transition: filter .18s ease;
+  }
+  button.primary:hover, a.primary:hover { filter: brightness(1.08); }
+  button.primary:disabled { opacity: .55; cursor: not-allowed; filter: none; }
+  button.ghost {
+    height: 36px; padding: 0 16px; border-radius: 6px; cursor: pointer;
+    background: transparent; border: 1px solid var(--field-border); color: var(--text);
+    font-size: 13px; font-family: inherit;
+  }
+  button.ghost:hover { border-color: var(--primary); color: var(--primary); }
+  button.danger {
+    height: 36px; padding: 0 18px; border-radius: 6px; border: none; cursor: pointer;
+    background: var(--danger); color: #fff; font-size: 13px; font-family: inherit;
+  }
+
+  .card {
+    border: 1px solid var(--border); border-radius: 12px;
+    padding: 18px 20px; margin-bottom: 16px; background: var(--card);
+  }
+  .card h3 { margin: 0 0 4px; font-size: 14px; font-weight: 700; }
+  .card .hint { margin: 0 0 12px; font-size: 12px; color: var(--muted); }
+
+  .note {
+    margin-top: 14px; padding: 10px 12px; border-radius: 8px;
+    background: var(--out-bg); border: 1px solid var(--out-border);
+    font-size: 12px; color: var(--muted); line-height: 1.7;
+  }
+  .note.warn { border-color: color-mix(in srgb, var(--warn) 45%, var(--out-border)); color: var(--warn); }
+  .note.err { border-color: color-mix(in srgb, var(--danger) 45%, var(--out-border)); color: var(--danger); }
+  .note.ok { border-color: color-mix(in srgb, var(--success) 45%, var(--out-border)); color: var(--success); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px;
+    border: 1px solid var(--field-border); border-radius: 999px; font-size: 12px;
+    cursor: pointer; user-select: none; color: var(--text); background: var(--field);
+  }
+  .chip input { margin: 0; }
+  .chip.dis { opacity: .45; cursor: not-allowed; }
+
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 11px; }
+  .tag.on { background: color-mix(in srgb, var(--success) 16%, transparent); color: var(--success); }
+  .tag.off { background: color-mix(in srgb, var(--dim) 18%, transparent); color: var(--dim); }
+  .tag.bad { background: color-mix(in srgb, var(--danger) 16%, transparent); color: var(--danger); }
+
+  .empty { padding: 28px 0; text-align: center; color: var(--muted); font-size: 13px; }
+
+  .foot { margin-top: 16px; display: flex; align-items: center; gap: 8px; min-height: 20px; }
+  .status { font-size: 12px; }
+  .status.ok { color: var(--success); }
+  .status.err { color: var(--danger); }
+  .spinner {
+    width: 13px; height: 13px; border-radius: 50%; border: 2px solid var(--field-border);
+    border-top-color: var(--primary); animation: spin .8s linear infinite; display: none;
+  }
+  .spinner.show { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 640px) {
+    .page { padding: 16px 16px 32px; }
+    .panel { padding: 16px 14px 24px; }
+    th, td { padding: 7px 6px; font-size: 12px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="head">
+    <a class="back" id="back" href="#" aria-label="返回">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="head-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.6 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+    <div class="head-text">
+      <h1>设备高级设置</h1>
+      <p>端口统计、线缆检测、镜像、隔离、QoS、VLAN 扩展与配置备份</p>
+    </div>
+  </header>
+
+  <section class="panel">
+    <div class="tabs" id="tabs">
+      <button class="tab on" data-v="statistics">端口统计</button>
+      <button class="tab" data-v="cable">线缆检测</button>
+      <button class="tab" data-v="mirror">端口镜像</button>
+      <button class="tab" data-v="isolation">端口隔离</button>
+      <button class="tab" data-v="loop">环回保护</button>
+      <button class="tab" data-v="qos">QoS</button>
+      <button class="tab" data-v="vlan">VLAN 扩展</button>
+      <button class="tab" data-v="backup">配置备份</button>
+      <button class="tab" data-v="reset">恢复出厂</button>
+    </div>
+
+    <div id="view"><div class="empty">加载中…</div></div>
+
+    <div class="foot">
+      <span class="spinner" id="spin"></span>
+      <span class="status" id="status"></span>
+    </div>
+  </section>
+</div>
+
+<script>
+  // 跟随应用主题
+  (function () {
+    var mode = 'auto';
+    try { mode = localStorage.getItem('vueuse-color-scheme') || 'auto'; } catch (e) {}
+    if (mode !== 'light' && mode !== 'dark') {
+      mode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    }
+    document.documentElement.setAttribute('data-theme', mode);
+  })();
+
+  // 内嵌到设备详情页时，外层标签已经承担导航，这里去掉自己的抬头和标签栏
+  var EMBED = /(^|[?&])embed=1(&|$)/.test(location.search);
+  var postHeight = function () {
+    if (!EMBED) return;
+    try {
+      parent.postMessage({ advHeight: document.documentElement.scrollHeight }, '*');
+    } catch (e) {}
+  };
+  if (EMBED) {
+    var st = document.createElement('style');
+    st.textContent = '.head{display:none}.tabs{display:none}' +
+      '.page{max-width:none;margin:0;padding:0 0 24px}.panel{min-height:0}';
+    document.head.appendChild(st);
+    // 外层九个标签共用一个 iframe，切标签时只切视图、不重新加载页面
+    window.addEventListener('message', function (ev) {
+      var d = ev.data;
+      if (d && d.adv && d.adv !== CUR && window.VIEWS && VIEWS[d.adv]) {
+        go(d.adv);
+        setTimeout(postHeight, 60);
+      }
+    });
+    window.addEventListener('load', postHeight);
+    window.addEventListener('resize', postHeight);
+  }
+
+  document.getElementById('back').addEventListener('click', function (ev) {
+    ev.preventDefault();
+    if (window.parent !== window && window.parent.__mercuryCloseTool) {
+      window.parent.__mercuryCloseTool();
+      return;
+    }
+    location.href = './#/diagnostic-tools';
+  });
+
+  var PREFIX = (function () {
+    var p = location.pathname;
+    var i = p.lastIndexOf('/');
+    return i >= 0 ? p.slice(0, i) : '';
+  })();
+
+  var view = document.getElementById('view');
+  var CUR = '';
+  var spin = document.getElementById('spin');
+  var statusEl = document.getElementById('status');
+  var MAC = '';
+  var busy = 0;
+
+  function setBusy(on) {
+    busy += on ? 1 : -1;
+    if (busy < 0) busy = 0;
+    spin.className = 'spinner' + (busy ? ' show' : '');
+  }
+  function ok(msg) {
+    statusEl.className = 'status ok';
+    statusEl.textContent = msg || '完成';
+  }
+  function bad(msg) {
+    statusEl.className = 'status err';
+    statusEl.textContent = msg || '失败';
+  }
+  function esc(s) {
+    return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function num(n) {
+    var v = Number(n) || 0;
+    return v.toLocaleString('zh-CN');
+  }
+
+  async function api(method, params) {
+    if (!MAC) throw new Error('未获取到设备');
+    var r = await fetch(PREFIX + '/api/forward/' + MAC, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ method: method, params: params || {} })
+    });
+    var j = await r.json();
+    if (j.code !== 200) throw new Error(j.message || '设备返回错误');
+    var d = j.data || {};
+    if (d.code !== undefined && d.code !== 0) throw new Error(d.message || '设备返回错误');
+    return d.data;
+  }
+
+  async function withBusy(fn, successMsg) {
+    setBusy(true);
+    statusEl.className = 'status';
+    statusEl.textContent = '正在执行…';
+    try {
+      var r = await fn();
+      ok(successMsg);
+      return r;
+    } catch (e) {
+      bad(e.message || String(e));
+      throw e;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function go(viewName) {
+    CUR = viewName;
+    document.querySelectorAll('.tab').forEach(function (t) {
+      t.classList.toggle('on', t.dataset.v === viewName);
+    });
+    statusEl.className = 'status';
+    statusEl.textContent = '';
+    var fn = VIEWS[viewName];
+    if (!fn) return;
+    view.innerHTML = '<div class="empty">加载中…</div>';
+    Promise.resolve()
+      .then(fn)
+      .catch(function (e) {
+        view.innerHTML = '<div class="note err">加载失败：' + esc(e.message || e) + '</div>';
+      });
+  }
+
+  function chips(n, selected, name, disabledFn) {
+    var html = '<div class="chips">';
+    for (var i = 1; i <= n; i++) {
+      var dis = disabledFn ? disabledFn(i) : false;
+      var checked = (selected || []).indexOf(i) >= 0 ? ' checked' : '';
+      html += '<label class="chip' + (dis ? ' dis' : '') + '">' +
+        '<input type="checkbox" name="' + name + '" value="' + i + '"' + checked + (dis ? ' disabled' : '') + '>端口 ' + i +
+        '</label>';
+    }
+    return html + '</div>';
+  }
+
+  function selected(name) {
+    return Array.prototype.slice
+      .call(view.querySelectorAll('input[name="' + name + '"]:checked'))
+      .map(function (el) { return Number(el.value); });
+  }
+
+  /* ---------------- 端口统计 ---------------- */
+  async function vStatistics() {
+    var d = await api('statistics/list');
+    var rows = (d.ports || []).map(function (p) {
+      return '<tr><td>端口 ' + p.port + '</td>' +
+        '<td>' + (p.enabled ? '<span class="tag on">启用</span>' : '<span class="tag off">禁用</span>') + '</td>' +
+        '<td>' + esc(p.link_text || '断开') + '</td>' +
+        '<td class="num">' + num(p.tx_good) + '</td>' +
+        '<td class="num">' + num(p.tx_bad) + '</td>' +
+        '<td class="num">' + num(p.rx_good) + '</td>' +
+        '<td class="num">' + num(p.rx_bad) + '</td></tr>';
+    }).join('');
+    view.innerHTML =
+      '<div class="view-head"><h2>端口统计</h2><p>收发报文累计计数，可用于判断丢包与链路质量</p></div>' +
+      '<table><thead><tr><th>端口</th><th>状态</th><th>协商速率</th>' +
+      '<th class="num">正常发包</th><th class="num">失败发包</th><th class="num">正常收包</th><th class="num">失败收包</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>' +
+      '<div class="row">' +
+      '<button class="primary" id="st-refresh">刷新</button>' +
+      '<button class="ghost" id="st-clear">清空计数</button>' +
+      '</div>' +
+      '<div class="note">计数由设备维护，重启后归零；「清空计数」会把所有端口的统计清零。</div>';
+
+    document.getElementById('st-refresh').onclick = function () { go('statistics'); };
+    document.getElementById('st-clear').onclick = function () {
+      if (!confirm('确定清空所有端口的统计计数？')) return;
+      withBusy(function () { return api('statistics/clear'); }, '已清空').then(function () {
+        setTimeout(function () { go('statistics'); }, 600);
+      }).catch(function () {});
+    };
+  }
+
+  /* ---------------- 线缆检测 ---------------- */
+  async function vCable() {
+    var d = await api('cable/list');
+    var rows = (d.ports || []).map(function (p) {
+      var res = p.state_text || '--';
+      var cls = p.state === 1 ? 'on' : (p.state >= 2 && p.state <= 5 ? 'bad' : 'off');
+      return '<tr><td><input type="checkbox" name="cbl" value="' + p.port + '"' +
+        (p.supported ? '' : ' disabled') + '></td>' +
+        '<td>端口 ' + p.port + '</td>' +
+        '<td>' + (p.fiber ? '光口' : '电口') + '</td>' +
+        '<td><span class="tag ' + cls + '">' + esc(res) + '</span></td>' +
+        '<td class="num">' + (p.length_valid ? p.length + ' m' : '--') + '</td></tr>';
+    }).join('');
+    view.innerHTML =
+      '<div class="view-head"><h2>线缆检测</h2><p>检测电口网线的通断与故障点距离，光口不支持</p></div>' +
+      '<table><thead><tr><th style="width:48px">选择</th><th>端口</th><th>介质</th><th>检测结果</th><th class="num">故障距离</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>' +
+      '<div class="row"><button class="primary" id="cbl-run">开始检测</button>' +
+      '<button class="ghost" id="cbl-refresh">刷新结果</button></div>' +
+      '<div class="note warn">检测时端口会短暂中断（当前未接线的端口没有影响），每个端口约需数秒，请耐心等待结果返回。</div>';
+
+    document.getElementById('cbl-refresh').onclick = function () { go('cable'); };
+    document.getElementById('cbl-run').onclick = function () {
+      var ports = selected('cbl');
+      if (!ports.length) { bad('请先选择端口'); return; }
+      withBusy(function () { return api('cable/run', { ports: ports }); }, '检测完成').then(function () {
+        setTimeout(function () { go('cable'); }, 800);
+      }).catch(function () {});
+    };
+  }
+
+  /* ---------------- 端口镜像 ---------------- */
+  async function vMirror() {
+    var d = await api('mirror/get');
+    var n = (d.sources || []).length || 6;
+    var opts = '';
+    for (var i = 1; i <= n; i++) {
+      opts += '<option value="' + i + '"' + (d.monitor_port === i ? ' selected' : '') + '>端口 ' + i + '</option>';
+    }
+    var rows = (d.sources || []).map(function (p) {
+      return '<tr><td>端口 ' + p.port + '</td>' +
+        '<td>' + (p.ingress ? '<span class="tag on">启用</span>' : '<span class="tag off">禁用</span>') + '</td>' +
+        '<td>' + (p.egress ? '<span class="tag on">启用</span>' : '<span class="tag off">禁用</span>') + '</td></tr>';
+    }).join('');
+    view.innerHTML =
+      '<div class="view-head"><h2>端口镜像</h2><p>把被监控端口的流量复制到监控端口，便于接抓包设备分析</p></div>' +
+      '<div class="card"><h3>监控端口</h3><p class="hint">所有被镜像的流量会从这个端口发出，通常接到装有抓包软件的电脑</p>' +
+      '<div class="row" style="margin-top:0">' +
+      '<div class="f"><label>启用状态</label><select id="mi-en"><option value="0"' + (d.enabled ? '' : ' selected') + '>禁用</option><option value="1"' + (d.enabled ? ' selected' : '') + '>启用</option></select></div>' +
+      '<div class="f"><label>监控端口</label><select id="mi-port">' + opts + '</select></div>' +
+      '<button class="primary" id="mi-save">应用</button></div></div>' +
+      '<div class="card"><h3>被监控端口</h3><p class="hint">选择要镜像的源端口，并指定抓取进入（入口）或发出（出口）的流量</p>' +
+      chips(n, [], 'mirsrc') +
+      '<div class="row">' +
+      '<div class="f"><label>入口流量</label><select id="mi-ing"><option value="4">不修改</option><option value="1">启用</option><option value="0">禁用</option></select></div>' +
+      '<div class="f"><label>出口流量</label><select id="mi-egr"><option value="4">不修改</option><option value="1">启用</option><option value="0">禁用</option></select></div>' +
+      '<button class="primary" id="mi-save-src">应用</button></div></div>' +
+      '<div class="card"><h3>当前被监控端口</h3><table><thead><tr><th>端口</th><th>入口</th><th>出口</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+
+    document.getElementById('mi-save').onclick = function () {
+      var en = document.getElementById('mi-en').value === '1';
+      var port = Number(document.getElementById('mi-port').value);
+      withBusy(function () { return api('mirror/set', { enabled: en, monitor_port: port }); }, '已应用')
+        .then(function () { setTimeout(function () { go('mirror'); }, 600); }).catch(function () {});
+    };
+    document.getElementById('mi-save-src').onclick = function () {
+      var ports = selected('mirsrc');
+      if (!ports.length) { bad('请先选择被监控端口'); return; }
+      var ing = Number(document.getElementById('mi-ing').value);
+      var egr = Number(document.getElementById('mi-egr').value);
+      if (ing === 4 && egr === 4) { bad('入口和出口至少要设置一项'); return; }
+      withBusy(function () { return api('mirror/source/set', { ports: ports, ingress: ing === 4 ? 0 : ing, egress: egr === 4 ? 0 : egr }); }, '已应用')
+        .then(function () { setTimeout(function () { go('mirror'); }, 600); }).catch(function () {});
+    };
+  }
+
+  /* ---------------- 端口隔离 ---------------- */
+  async function vIsolation() {
+    var d = await api('isolation/get');
+    var n = d.count || 6;
+    var rows = (d.ports || []).map(function (p) {
+      return '<tr><td>端口 ' + p.port + (p.lag ? ' (LAG' + p.lag + ')' : '') + '</td><td>' + esc(p.forward || '-') + '</td></tr>';
+    }).join('');
+    view.innerHTML =
+      '<div class="view-head"><h2>端口隔离</h2><p>限制端口之间互相转发，隔离端口只能与指定的转发端口通信</p></div>' +
+      '<div class="card"><h3>设置隔离</h3><p class="hint">先选要隔离的端口，再选它们允许通信的转发端口；转发端口不选表示全部禁止互访</p>' +
+      '<div class="f"><label>要隔离的端口</label>' + chips(n, [], 'isogroup') + '</div>' +
+      '<div class="f" style="margin-top:12px"><label>允许转发的端口</label>' + chips(n, [], 'isofwd') + '</div>' +
+      '<div class="row"><button class="primary" id="iso-save">应用</button></div></div>' +
+      '<div class="card"><h3>当前转发关系</h3><table><thead><tr><th>端口</th><th>可转发到</th></tr></thead><tbody>' + rows + '</tbody></table></div>' +
+      '<div class="note">端口隔离只在 802.1Q VLAN 模式下生效；若与 VLAN 配置冲突，以 802.1Q VLAN 为准。</div>';
+
+    document.getElementById('iso-save').onclick = function () {
+      var g = selected('isogroup');
+      var f = selected('isofwd');
+      if (!g.length) { bad('请先选择要隔离的端口'); return; }
+      withBusy(function () { return api('isolation/set', { group_ports: g, forward_ports: f }); }, '已应用')
+        .then(function () { setTimeout(function () { go('isolation'); }, 600); }).catch(function () {});
+    };
+  }
+
+  /* ---------------- 环回保护 ---------------- */
+  async function vLoop() {
+    var d = await api('loop/get');
+    view.innerHTML =
+      '<div class="view-head"><h2>环回保护</h2><p>检测到端口出现环路时自动阻塞该端口，避免广播风暴</p></div>' +
+      '<div class="card"><h3>环回保护状态</h3><p class="hint">建议保持启用</p>' +
+      '<div class="row" style="margin-top:0">' +
+      '<div class="f"><label>状态</label><select id="lp-en">' +
+      '<option value="1"' + (d.enabled ? ' selected' : '') + '>启用</option>' +
+      '<option value="0"' + (d.enabled ? '' : ' selected') + '>禁用</option></select></div>' +
+      '<button class="primary" id="lp-save">应用</button></div></div>' +
+      '<div class="note">环路消除后端口会自动恢复转发，无需手动解除。</div>';
+
+    document.getElementById('lp-save').onclick = function () {
+      var en = document.getElementById('lp-en').value === '1';
+      withBusy(function () { return api('loop/set', { enabled: en }); }, '已应用')
+        .then(function () { setTimeout(function () { go('loop'); }, 600); }).catch(function () {});
+    };
+  }
+
+  /* ---------------- QoS ---------------- */
+  async function vQos() {
+    var d = await api('qos/get');
+    var modes = [[0, '基于端口'], [1, '基于 802.1P'], [2, '基于 DSCP']];
+    var modeOpts = modes.map(function (m) {
+      return '<option value="' + m[0] + '"' + (d.mode === m[0] ? ' selected' : '') + '>' + m[1] + '</option>';
+    }).join('');
+    var priName = { 1: '1 最低', 2: '2 正常', 3: '3 中等', 4: '4 最高' };
+    var stormText = function (p) {
+      if (!p.storm_enabled) return '<span class="tag off">禁用</span>';
+      var t = [];
+      if (p.storm_type & 1) t.push('单播');
+      if (p.storm_type & 2) t.push('组播');
+      if (p.storm_type & 4) t.push('广播');
+      return '<span class="tag on">' + esc(t.join('/')) + ' ' + num(p.storm_kbps) + ' Kbps</span>';
+    };
+    var rows = (d.ports || []).map(function (p) {
+      return '<tr><td><input type="checkbox" name="qsel" value="' + p.port + '"></td>' +
+        '<td>端口 ' + p.port + '</td>' +
+        '<td>' + esc(priName[p.priority] || p.priority) + '</td>' +
+        '<td class="num">' + (p.ingress_kbps ? num(p.ingress_kbps) + ' Kbps' : '不限') + '</td>' +
+        '<td class="num">' + (p.egress_kbps ? num(p.egress_kbps) + ' Kbps' : '不限') + '</td>' +
+        '<td>' + stormText(p) + '</td></tr>';
+    }).join('');
+    view.innerHTML =
+      '<div class="view-head"><h2>QoS</h2><p>优先级调度、端口限速与风暴抑制</p></div>' +
+      '<div class="card"><h3>QoS 模式</h3><p class="hint">影响优先级判断依据；基于端口即按下面的端口优先级调度</p>' +
+      '<div class="row" style="margin-top:0">' +
+      '<div class="f"><label>模式</label><select id="q-mode">' + modeOpts + '</select></div>' +
+      '<button class="primary" id="q-mode-save">应用</button></div></div>' +
+      '<div class="card"><h3>端口 QoS 状态</h3>' +
+      '<table><thead><tr><th style="width:48px">选择</th><th>端口</th><th>优先级</th><th class="num">入口限速</th><th class="num">出口限速</th><th>风暴抑制</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table>' +
+      '<div class="row">' +
+      '<div class="f"><label>优先级队列</label><select id="q-pri"><option value="0">1 最低</option><option value="1">2 正常</option><option value="2">3 中等</option><option value="3">4 最高</option></select></div>' +
+      '<button class="primary" id="q-pri-save">设置优先级</button></div>' +
+      '<div class="row">' +
+      '<div class="f"><label>入口限速 (Kbps，0=不限)</label><input id="q-ing" type="number" min="0" max="10000000" step="64" value="0"></div>' +
+      '<div class="f"><label>出口限速 (Kbps，0=不限)</label><input id="q-egr" type="number" min="0" max="10000000" step="64" value="0"></div>' +
+      '<button class="primary" id="q-rate-save">设置限速</button></div>' +
+      '<div class="row">' +
+      '<div class="f"><label>风暴抑制</label><select id="q-st-en"><option value="0">禁用</option><option value="1">启用</option></select></div>' +
+      '<div class="f"><label>速率 (Kbps)</label><input id="q-st-rate" type="number" min="64" max="10000000" step="64" value="1024"></div>' +
+      '<div class="f"><label>风暴类型</label><div class="chips">' +
+      '<label class="chip"><input type="checkbox" name="qsttype" value="1">单播</label>' +
+      '<label class="chip"><input type="checkbox" name="qsttype" value="2">组播</label>' +
+      '<label class="chip"><input type="checkbox" name="qsttype" value="4">广播</label></div></div>' +
+      '<button class="primary" id="q-st-save">设置风暴抑制</button></div>' +
+      '<div class="note">限速值需为 64 Kbps 的整数倍；0 表示不限速。以上批量操作只对勾选的端口生效。</div></div>';
+
+    document.getElementById('q-mode-save').onclick = function () {
+      var mode = Number(document.getElementById('q-mode').value);
+      withBusy(function () { return api('qos/mode/set', { mode: mode }); }, '已切换模式')
+        .then(function () { setTimeout(function () { go('qos'); }, 600); }).catch(function () {});
+    };
+    document.getElementById('q-pri-save').onclick = function () {
+      var ports = selected('qsel');
+      if (!ports.length) { bad('请先勾选端口'); return; }
+      var q = Number(document.getElementById('q-pri').value);
+      withBusy(function () { return api('qos/priority/set', { ports: ports, queue: q }); }, '已应用')
+        .then(function () { setTimeout(function () { go('qos'); }, 600); }).catch(function () {});
+    };
+    document.getElementById('q-rate-save').onclick = function () {
+      var ports = selected('qsel');
+      if (!ports.length) { bad('请先勾选端口'); return; }
+      var ing = Number(document.getElementById('q-ing').value) || 0;
+      var egr = Number(document.getElementById('q-egr').value) || 0;
+      withBusy(function () { return api('qos/rate/set', { ports: ports, ingress_kbps: ing, egress_kbps: egr }); }, '已应用')
+        .then(function () { setTimeout(function () { go('qos'); }, 600); }).catch(function () {});
+    };
+    document.getElementById('q-st-save').onclick = function () {
+      var ports = selected('qsel');
+      if (!ports.length) { bad('请先勾选端口'); return; }
+      var en = document.getElementById('q-st-en').value === '1';
+      var rate = Number(document.getElementById('q-st-rate').value) || 0;
+      var types = Array.prototype.slice.call(view.querySelectorAll('input[name="qsttype"]:checked'))
+        .map(function (el) { return Number(el.value); });
+      withBusy(function () {
+        return api('qos/storm/set', { ports: ports, enabled: en, rate_kbps: rate, types: types });
+      }, '已应用').then(function () { setTimeout(function () { go('qos'); }, 600); }).catch(function () {});
+    };
+  }
+
+  /* ---------------- VLAN 扩展 ---------------- */
+  async function vVlan() {
+    var mtu = await api('vlan/mtu/get');
+    var pv = await api('vlan/portbased/get');
+    var pvid = await api('vlan/pvid/get');
+    var n = pv.count || 6;
+    var upOpts = '';
+    for (var i = 1; i <= n; i++) {
+      upOpts += '<option value="' + i + '"' + (mtu.uplink === i ? ' selected' : '') + '>端口 ' + i + '</option>';
+    }
+    var pvRows = (pv.vlans || []).map(function (v) {
+      // VLAN 1 是默认 VLAN，设备不允许删除
+      var del = v.vlan === 1
+        ? '<input type="checkbox" disabled title="默认 VLAN 不可删除">'
+        : '<input type="checkbox" name="pvdel" value="' + v.vlan + '">';
+      return '<tr><td>' + del + '</td>' +
+        '<td>VLAN ' + v.vlan + '</td><td>' + (v.ports || []).join(', ') + '</td></tr>';
+    }).join('') || '<tr><td colspan="3" class="empty">暂无端口 VLAN</td></tr>';
+    var pvidRows = (pvid.ports || []).map(function (p) {
+      return '<tr><td><input type="checkbox" name="pdsel" value="' + p.port + '"></td>' +
+        '<td>端口 ' + p.port + '</td><td class="num">' + p.pvid + '</td></tr>';
+    }).join('');
+    view.innerHTML =
+      '<div class="view-head"><h2>VLAN 扩展</h2><p>设备自带的 MTU VLAN、端口 VLAN 与 802.1Q PVID 设置</p></div>' +
+      '<div class="card"><h3>MTU VLAN</h3><p class="hint">上联端口与其他端口互通，其余端口之间互相隔离（最简单的隔离方式）</p>' +
+      '<div class="row" style="margin-top:0">' +
+      '<div class="f"><label>状态</label><select id="mtu-en"><option value="1"' + (mtu.enabled ? ' selected' : '') + '>启用</option><option value="0"' + (mtu.enabled ? '' : ' selected') + '>禁用</option></select></div>' +
+      '<div class="f"><label>Uplink 端口</label><select id="mtu-up">' + upOpts + '</select></div>' +
+      '<button class="primary" id="mtu-save">应用</button></div>' +
+      '<div class="note warn">启用 MTU VLAN 会自动禁用端口 VLAN 与 802.1Q VLAN，其配置将丢失；修改前请先确认。</div></div>' +
+      '<div class="card"><h3>端口 VLAN</h3><p class="hint">按端口划分的简单 VLAN，' + (pv.enabled ? '当前已启用' : '当前未启用') + '</p>' +
+      '<div class="row" style="margin-top:0"><div class="f"><label>启用状态</label><select id="pv-en">' +
+      '<option value="1"' + (pv.enabled ? ' selected' : '') + '>启用</option><option value="0"' + (pv.enabled ? '' : ' selected') + '>禁用</option></select></div>' +
+      '<button class="primary" id="pv-en-save">应用</button></div>' +
+      '<table style="margin-top:14px"><thead><tr><th style="width:48px">删除</th><th>VLAN</th><th>成员端口</th></tr></thead><tbody>' + pvRows + '</tbody></table>' +
+      '<div class="row"><div class="f" style="min-width:110px"><label>VLAN ID</label><input id="pv-vid" type="number" min="1" max="4094" value="2"></div>' +
+      '<div class="f" style="flex:1"><label>成员端口</label>' + chips(n, [], 'pvmem') + '</div></div>' +
+      '<div class="row"><button class="primary" id="pv-add">新增 / 更新 VLAN</button>' +
+      '<button class="ghost" id="pv-del">删除选中 VLAN</button></div></div>' +
+      '<div class="card"><h3>802.1Q PVID</h3><p class="hint">端口收到未打标签的报文时打上的 VLAN 号；' +
+      (pvid.dot1q_enabled ? '当前 802.1Q VLAN 已启用' : '需先在设备上启用 802.1Q VLAN 才能设置') + '</p>' +
+      '<table><thead><tr><th style="width:48px">选择</th><th>端口</th><th class="num">PVID</th></tr></thead><tbody>' + pvidRows + '</tbody></table>' +
+      '<div class="row"><div class="f" style="min-width:110px"><label>PVID</label><input id="pd-val" type="number" min="1" max="4094" value="1"></div>' +
+      '<button class="primary" id="pd-save">应用</button></div></div>';
+
+    document.getElementById('mtu-save').onclick = function () {
+      var en = document.getElementById('mtu-en').value === '1';
+      var up = Number(document.getElementById('mtu-up').value);
+      if (en !== mtu.enabled && !confirm(en
+        ? '启用 MTU VLAN 会清空端口 VLAN 和 802.1Q VLAN 的配置，确定继续？'
+        : '禁用 MTU VLAN 会丢失当前 MTU VLAN 配置，确定继续？')) return;
+      withBusy(function () { return api('vlan/mtu/set', { enabled: en, uplink: up }); }, '已应用')
+        .then(function () { setTimeout(function () { go('vlan'); }, 700); }).catch(function () {});
+    };
+    document.getElementById('pv-en-save').onclick = function () {
+      var en = document.getElementById('pv-en').value === '1';
+      withBusy(function () { return api('vlan/portbased/enable', { enabled: en }); }, '已应用')
+        .then(function () { setTimeout(function () { go('vlan'); }, 700); }).catch(function () {});
+    };
+    document.getElementById('pv-add').onclick = function () {
+      var vid = Number(document.getElementById('pv-vid').value) || 0;
+      var ports = selected('pvmem');
+      if (!ports.length) { bad('请选择成员端口'); return; }
+      withBusy(function () { return api('vlan/portbased/add', { vid: vid, ports: ports }); }, '已保存')
+        .then(function () { setTimeout(function () { go('vlan'); }, 700); }).catch(function () {});
+    };
+    document.getElementById('pv-del').onclick = function () {
+      var vids = selected('pvdel');
+      if (!vids.length) { bad('请先勾选要删除的 VLAN'); return; }
+      if (!confirm('确定删除选中 VLAN？')) return;
+      withBusy(function () { return api('vlan/portbased/del', { vlans: vids }); }, '已删除')
+        .then(function () { setTimeout(function () { go('vlan'); }, 700); }).catch(function () {});
+    };
+    document.getElementById('pd-save').onclick = function () {
+      var ports = selected('pdsel');
+      if (!ports.length) { bad('请先勾选端口'); return; }
+      var pvidVal = Number(document.getElementById('pd-val').value) || 0;
+      var pbm = 0;
+      ports.forEach(function (p) { pbm |= (1 << (p - 1)); });
+      withBusy(function () { return api('vlan/pvid/set', { pbm: pbm, pvid: pvidVal }); }, '已应用')
+        .then(function () { setTimeout(function () { go('vlan'); }, 700); }).catch(function () {});
+    };
+  }
+
+  /* ---------------- 配置备份 ---------------- */
+  async function vBackup() {
+    view.innerHTML =
+      '<div class="view-head"><h2>配置备份与还原</h2><p>导出 / 导入设备的完整配置</p></div>' +
+      '<div class="card"><h3>备份配置</h3><p class="hint">把当前运行配置导出为 .cfg 文件保存到本地</p>' +
+      '<div class="row" style="margin-top:0"><a class="primary" id="bk-dl" href="#">下载配置备份</a></div>' +
+      '<div class="note">建议在改动 VLAN、镜像、QoS 之前先做一次备份；备份过程中请勿断电。</div></div>' +
+      '<div class="card"><h3>还原配置</h3><p class="hint">选择一个之前导出的 .cfg 文件恢复设备配置</p>' +
+      '<div class="row" style="margin-top:0">' +
+      '<div class="f" style="flex:1"><label>配置文件 (.cfg)</label><input id="rs-file" type="file" accept=".cfg" style="height:auto;padding:7px 10px"></div>' +
+      '<button class="primary" id="rs-run">开始还原</button></div>' +
+      '<div class="note warn">还原会覆盖当前全部配置，错误的配置可能导致交换机无法管理，请确认文件来自同型号设备。</div></div>';
+
+    document.getElementById('bk-dl').addEventListener('click', function (ev) {
+      ev.preventDefault();
+      if (!MAC) { bad('未获取到设备'); return; }
+      window.location.href = PREFIX + '/api/config/backup?mac=' + encodeURIComponent(MAC);
+      ok('已开始下载');
+    });
+
+    document.getElementById('rs-run').onclick = function () {
+      var el = document.getElementById('rs-file');
+      var file = el.files && el.files[0];
+      if (!file) { bad('请先选择 .cfg 文件'); return; }
+      if (!confirm('还原会覆盖当前全部配置，确定继续？')) return;
+      setBusy(true);
+      var fd = new FormData();
+      fd.append('method', 'config/restore');
+      fd.append('file', file);
+      fd.append('filename', file.name);
+      fetch(PREFIX + '/api/forward/' + MAC, { method: 'POST', body: fd })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (j.code !== 200) throw new Error(j.message || '还原失败');
+          ok('配置已还原，设备可能重启');
+        })
+        .catch(function (e) { bad(e.message || String(e)); })
+        .then(function () { setBusy(false); });
+    };
+  }
+
+  /* ---------------- 恢复出厂 ---------------- */
+  async function vReset() {
+    view.innerHTML =
+      '<div class="view-head"><h2>恢复出厂设置</h2><p>清空全部配置并重启设备</p></div>' +
+      '<div class="card"><h3>危险操作</h3><p class="hint">执行后所有配置恢复默认，管理 IP 会回到出厂地址（192.168.0.1 或 DHCP），本应用将无法再连接该设备</p>' +
+      '<div class="row" style="margin-top:0">' +
+      '<div class="f" style="min-width:220px"><label>输入 RESET 以确认</label><input id="rs-confirm" placeholder="RESET" autocomplete="off"></div>' +
+      '<button class="danger" id="rs-do">恢复出厂</button></div>' +
+      '<div class="note err">请务必先通过「配置备份」导出一份 .cfg，否则恢复出厂后配置无法找回。</div></div>';
+
+    document.getElementById('rs-do').onclick = function () {
+      var v = document.getElementById('rs-confirm').value.trim();
+      if (v !== 'RESET') { bad('请输入 RESET 确认'); return; }
+      if (!confirm('最后确认：恢复出厂会清空全部配置并重启，确定继续？')) return;
+      withBusy(function () { return api('sys/factory/reset', { confirm: 'RESET' }); }, '已下发，设备正在重启')
+        .catch(function () {});
+    };
+  }
+
+  var VIEWS = {    statistics: vStatistics,
+    cable: vCable,
+    mirror: vMirror,
+    isolation: vIsolation,
+    loop: vLoop,
+    qos: vQos,
+    vlan: vVlan,
+    backup: vBackup,
+    reset: vReset
+  };
+
+  document.getElementById('tabs').addEventListener('click', function (ev) {
+    var t = ev.target.closest('.tab');
+    if (t) go(t.dataset.v);
+  });
+
+  var MAC_KEY = 'mercury.adv.mac';
+
+  // 内容高度变化时把高度告诉外层，让 iframe 跟着长，避免出现内部滚动条
+  if (EMBED && window.MutationObserver) {
+    var __hpT = null;
+    new MutationObserver(function () {
+      clearTimeout(__hpT);
+      __hpT = setTimeout(postHeight, 80);
+    }).observe(view, { childList: true, subtree: true });
+  }
+
+  (async function init() {
+    var q = new URLSearchParams(location.search).get('v');
+    var target = q && VIEWS[q] ? q : 'statistics';
+
+    // 先用手上记住的设备立刻出内容，再在后台刷新，避免每次点标签都等一轮设备探测
+    try {
+      var cached = localStorage.getItem(MAC_KEY) || '';
+      if (cached) {
+        MAC = cached;
+        go(target);
+      }
+    } catch (e) {}
+
+    setBusy(true);
+    try {
+      var r = await fetch(PREFIX + '/api/devices', { cache: 'no-store' });
+      var j = await r.json();
+      var list = Array.isArray(j.data) ? j.data : [];
+      if (!list.length) throw new Error('没有可用的设备');
+      MAC = list[0].mac;
+      try { localStorage.setItem(MAC_KEY, MAC); } catch (e) {}
+      var hp = document.querySelector('.head-text p');
+      if (hp) hp.textContent = (list[0].name || list[0].model || MAC) + ' · ' + (list[0].ip || '');
+    } catch (e) {
+      if (!MAC) {
+        view.innerHTML = '<div class="note err">初始化失败：' + esc(e.message || e) + '</div>';
+        setBusy(false);
+        return;
+      }
+    }
+    setBusy(false);
+    if (!document.querySelector('#view .view-head')) go(target);
+  })();
+</script>
+</body>
+</html>

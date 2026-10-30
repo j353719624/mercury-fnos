@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <defs>
+    <!-- 发光滤镜 -->
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+    
+    <!-- 阴影滤镜 -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="5" stdDeviation="6" flood-opacity="0.15"/>
+    </filter>
+
+    <!-- 背景渐变：明亮清爽的天蓝渐变（与AI星芒蓝呼应，整体明快） -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#e0f2fe" />
+      <stop offset="100%" stop-color="#f1f5f9" />
+    </linearGradient>
+  </defs>
+
+  <!-- 明亮渐变底板 (无圆角) -->
+  <rect width="256" height="256" fill="url(#bgGrad)" />
+
+  <!-- 背景数据流向网络迹线 (底层) -->
+  <line x1="196" y1="92" x2="196" y2="44" stroke="#0ea5e9" stroke-width="8" stroke-linecap="round" />
+  <line x1="64" y1="164" x2="64" y2="212" stroke="#f59e0b" stroke-width="8" stroke-linecap="round" />
+
+  <!-- 1. 优化版: 交换机机身与网络设备特征 -->
+  <!-- 主机身 (无描边) -->
+  <rect x="24" y="92" width="208" height="72" fill="#868686" filter="url(#shadow)"/>
+  <rect x="24" y="92" width="208" height="6" fill="#a1a1aa" />
+
+  <!-- 交换机自带智能管理屏 -->
+  <rect x="40" y="106" width="48" height="44" rx="4" fill="#000000" stroke="#52525b" stroke-width="2" />
+  <!-- 屏幕内部显现"快速/自动化"的闪电符（严格几何居中） -->
+  <path d="M 66 113 L 54 129 L 64 129 L 60 143 L 74 123 L 66 123 Z" fill="#0ea5e9" filter="url(#glow)"/>
+
+  <!-- 优化版: Copper 与 Fiber 端口样式 (降低凸出高度) -->
+  <!-- Port 1 (Copper RJ45，卡扣缺口朝上) -->
+  <path d="M 110 136 L 130 136 L 130 122 L 127 122 L 127 118 L 113 118 L 113 122 L 110 122 Z" fill="#000000" stroke="#52525b" stroke-width="1.5" stroke-linejoin="round" />
+  <!-- 金属触点矩阵 (8-pin严格居中对齐，黄线居中) -->
+  <path d="M114.75 128v4 m1.5-4v4 m1.5-4v4 m1.5-4v4 m1.5-4v4 m1.5-4v4 m1.5-4v4 m1.5-4v4" stroke="#d97706" stroke-width="0.75" />
+  <!-- 下方状态灯 -->
+  <circle cx="120" cy="146" r="3" fill="#10b981" filter="url(#glow)" />
+
+  <!-- Port 2 (Copper RJ45) -->
+  <path d="M 146 136 L 166 136 L 166 122 L 163 122 L 163 118 L 149 118 L 149 122 L 146 122 Z" fill="#000000" stroke="#52525b" stroke-width="1.5" stroke-linejoin="round" />
+  <path d="M150.75 128v4 m1.5-4v4 m1.5-4v4 m1.5-4v4 m1.5-4v4 m1.5-4v4 m1.5-4v4 m1.5-4v4" stroke="#d97706" stroke-width="0.75" />
+  <circle cx="156" cy="146" r="3" fill="#10b981" filter="url(#glow)" />
+
+  <!-- Port 3 (Fiber SFP) -->
+  <!-- SFP 金属屏蔽笼罩 -->
+  <rect x="186" y="116" width="20" height="22" rx="2" fill="#52525b" stroke="#3f3f46" stroke-width="1.5" />
+  <!-- 内部光纤插孔（双LC结构） -->
+  <rect x="189" y="119" width="14" height="5" rx="1" fill="#000000" />
+  <rect x="189" y="128" width="14" height="5" rx="1" fill="#000000" />
+  <!-- 下方状态灯 -->
+  <circle cx="196" cy="146" r="3" fill="#f59e0b" filter="url(#glow)" />
+
+  <!-- 2. 突出: 智能配置能力 (网络拓扑节点) 右上角 -->
+  <circle cx="196" cy="44" r="26" fill="#ffffff" filter="url(#shadow)" />
+  <!-- Mesh 网络节点：中心 + 6 个外围节点（无连接线，纯节点阵列） -->
+  <g transform="translate(196, 44)">
+    <!-- 6 个外围节点（六边形分布） -->
+    <circle cx="0" cy="-10" r="3" fill="#0ea5e9" />
+    <circle cx="9" cy="-5" r="3" fill="#0ea5e9" />
+    <circle cx="9" cy="5" r="3" fill="#0ea5e9" />
+    <circle cx="0" cy="10" r="3" fill="#0ea5e9" />
+    <circle cx="-9" cy="5" r="3" fill="#0ea5e9" />
+    <circle cx="-9" cy="-5" r="3" fill="#0ea5e9" />
+    <!-- 中心节点（绿色高亮，代表主控网关） -->
+    <circle cx="0" cy="0" r="4" fill="#34d399" />
+  </g>
+  <!-- 3. 突出: 诊断工具能力 (Tools Gear Node) 左下角 -->
+  <circle cx="64" cy="212" r="26" fill="#ffffff" filter="url(#shadow)" />
+  <!-- 工具齿轮图案 (代表配置/工具箱) -->
+  <g transform="translate(64, 212)">
+    <circle cx="0" cy="0" r="10" fill="none" stroke="#f59e0b" stroke-width="7" stroke-dasharray="5 3.5" />
+    <circle cx="0" cy="0" r="8" fill="none" stroke="#f59e0b" stroke-width="6" />
+    <circle cx="0" cy="0" r="4" fill="#ffffff" />
+  </g>
+</svg>

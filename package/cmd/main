@@ -1,0 +1,100 @@
+#!/bin/bash
+
+# 后端启动脚本 - 强制 Root 运行版
+set -u
+
+# 1. 定义路径
+# 注意：必须与 fnOS 网关、index.cgi 的检查路径严格一致(/var/apps/mercury)，
+# 不要继承调用方传入的 TRIM_APPDEST —— fnOS 应用管理器与 CGI 环境的值不一致，
+# 会导致 socket 落到不同路径，每次打开都误判"socket 丢失"而反复杀进程重启(卡30秒)
+APP_HOME="/var/apps/mercury"
+SERVER_DIR="/usr/local/apps/@appcenter/mercury/server"
+APP_BIN="$SERVER_DIR/mercury_service"
+RUN_DIR="$APP_HOME/var"
+SOCKET_PATH="$APP_HOME/target/mercury"
+
+# 导出环境变量
+export TRIM_APPDEST="$APP_HOME"
+export MESHLAN_HTTP_SOCKET_PATH="$SOCKET_PATH"
+export MESHLAN_GATEWAY_AUTH="1"
+export MESHLAN_PROBE_PORT="55556"
+
+# 确保目录存在且对 root 可写
+mkdir -p "$APP_HOME/target" "$RUN_DIR" 2>/dev/null || true
+LOG_FILE="$RUN_DIR/meshlan.log"
+
+is_running() {
+  # 必须使用实际二进制路径进行状态检查
+  [ -x "$APP_BIN" ] && "$APP_BIN" --status >/dev/null 2>&1
+  return $?
+}
+
+# 有上限的进程清理（最多约2.2秒）：
+# 不调用 --stop —— 其内部对 SIGTERM 不可退出时会死等30秒，导致打开/卸载卡30秒
+kill_instance() {
+  pkill -TERM -f "$APP_BIN" 2>/dev/null || true
+  for i in {1..10}; do
+    pgrep -f "$APP_BIN" >/dev/null 2>&1 || break
+    sleep 0.2
+  done
+  pkill -9 -f "$APP_BIN" 2>/dev/null || true
+  rm -f /tmp/mercury.pid 2>/dev/null || true
+}
+
+start_app() {
+  # 记录启动尝试
+  echo "$(date) [INFO] 正在尝试启动后端..." >> "$LOG_FILE"
+  
+  if is_running; then
+    if [ -S "$SOCKET_PATH" ]; then
+      echo "$(date) [INFO] 检测到后端已在运行" >> "$LOG_FILE"
+      exit 0
+    fi
+    # 进程存活但 Socket 缺失（应用升级/重装重建目录后的残留实例）→ 快速清理后重启
+    echo "$(date) [WARN] 进程在运行但 Socket 缺失，清理残留实例并重启" >> "$LOG_FILE"
+    kill_instance
+    sleep 0.5
+  fi
+  
+  if [ ! -x "$APP_BIN" ]; then
+    echo "$(date) [ERROR] 找不到执行文件: $APP_BIN" >> "$LOG_FILE"
+    exit 1
+  fi
+
+  # 清理环境
+  rm -f "$SOCKET_PATH" 2>/dev/null || true
+
+  # 强制进入 SERVER_DIR 运行，以防资源路径找不到
+  cd "$SERVER_DIR" || exit 1
+  
+  # 后台启动
+  "$APP_BIN" --daemon >>"$LOG_FILE" 2>&1
+  RET=$?
+  
+  if [ $RET -ne 0 ]; then
+    echo "$(date) [ERROR] 启动二进制失败, 错误码: $RET" >> "$LOG_FILE"
+    exit 1
+  fi
+
+  # 等待 Socket 文件生成（200ms 轮询，正常情况后端已预启动、首次轮询即命中）
+  for i in {1..75}; do
+    if [ -S "$SOCKET_PATH" ]; then
+      echo "$(date) [INFO] 启动成功, Socket 已就绪" >> "$LOG_FILE"
+      exit 0
+    fi
+    sleep 0.2
+  done
+  
+  echo "$(date) [ERROR] 启动超时，Socket 未生成" >> "$LOG_FILE"
+  exit 1
+}
+
+case "${1:-status}" in
+  start)  start_app ;;
+  stop)
+    kill_instance
+    rm -f "$SOCKET_PATH" 2>/dev/null || true
+    exit 0 ;;
+  status) is_running && (echo "Running"; exit 0) || (echo "Stopped"; exit 3) ;;
+  *)      exit 1 ;;
+esac

@@ -1,0 +1,16 @@
+{
+    ".url": {
+        "mercury.Application": {
+            "title": "MERCURY",
+            "icon": "images/icon_{0}.png",
+            "type": "iframe",
+            "protocol": "http",
+          
+            "gatewaySocket": "mercury",
+            "gatewayPrefix": "/app/mercury",
+            
+            "url": "/cgi/ThirdParty/mercury/index.cgi/",
+            "allUsers": false
+        }
+    }
+}

@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>诊断工具 · MERCURY</title>
+<style>
+  :root {
+    --bg: #08090c;
+    --panel: transparent;
+    --panel-border: #21242b;
+    --surface: #14161c;
+    --surface-active: #1d2027;
+    --field: #101217;
+    --field-border: #262a33;
+    --text: #e8eaf0;
+    --muted: #8b91a1;
+    --dim: #6b7280;
+    --primary: #3b82f6;
+    --success: #22c55e;
+    --danger: #ef4444;
+    --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  .page { max-width: 1280px; margin: 0 auto; padding: 26px 40px 60px; }
+
+  /* 顶部：返回 + 图标 + 标题 */
+  .head { display: flex; align-items: center; gap: 14px; }
+  .back {
+    width: 34px; height: 34px; border-radius: 999px; flex: none;
+    border: 1px solid #2a2d35; color: #c7ccd6; display: grid; place-items: center;
+    text-decoration: none; transition: all .18s ease;
+  }
+  .back:hover { border-color: #3a3f4a; color: #fff; background: #14161c; }
+  .head-icon {
+    width: 46px; height: 46px; border-radius: 13px; flex: none;
+    display: grid; place-items: center;
+    background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+    box-shadow: 0 8px 22px -10px rgba(59,130,246,.85);
+  }
+  .head-text h1 { margin: 0; font-size: 18px; font-weight: 600; letter-spacing: .2px; }
+  .head-text p { margin: 2px 0 0; font-size: 12.5px; color: var(--muted); }
+
+  .divider { height: 1px; background: #1c1f26; margin: 18px 0 22px; }
+
+  /* 胶囊页签 */
+  .tabs {
+    display: inline-flex; gap: 4px; padding: 5px;
+    background: var(--surface); border: 1px solid #20232a; border-radius: 999px;
+  }
+  .tab {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 8px 18px; border-radius: 999px; border: 1px solid transparent;
+    background: transparent; color: var(--muted); font-size: 13px; font-family: inherit;
+    cursor: pointer; transition: all .18s ease; white-space: nowrap;
+  }
+  .tab:hover { color: #cfd3dc; }
+  .tab.active {
+    background: var(--surface-active); border-color: #2e323c; color: var(--text);
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+  }
+  .tab svg { width: 15px; height: 15px; }
+
+  /* 内容大卡片 */
+  .panel {
+    margin-top: 26px; border: 1px solid var(--panel-border); border-radius: 18px;
+    padding: 46px 40px 40px; background: var(--panel); min-height: 460px;
+  }
+  .panel-head { text-align: center; margin-bottom: 30px; }
+  .panel-head h2 { margin: 0; font-size: 19px; font-weight: 700; letter-spacing: .4px; }
+  .panel-head p { margin: 6px 0 0; font-size: 12.5px; color: var(--muted); }
+
+  .form { display: flex; gap: 12px; align-items: flex-end; justify-content: center; flex-wrap: wrap; max-width: 760px; margin: 0 auto; }
+  .field { display: flex; flex-direction: column; gap: 7px; flex: 1 1 260px; min-width: 180px; }
+  .field.narrow { flex: 0 0 130px; min-width: 110px; }
+  .field label { font-size: 12px; color: var(--dim); }
+  input {
+    width: 100%; height: 40px; padding: 0 13px; border-radius: 10px; outline: none;
+    background: var(--field); border: 1px solid var(--field-border);
+    color: var(--text); font-size: 13.5px; font-family: inherit; transition: border-color .18s ease;
+  }
+  input::placeholder { color: #565c69; }
+  input:focus { border-color: var(--primary); }
+  button.primary {
+    height: 40px; padding: 0 22px; border-radius: 10px; border: none; cursor: pointer;
+    background: var(--primary); color: #fff; font-size: 13.5px; font-weight: 600; font-family: inherit;
+    display: inline-flex; align-items: center; gap: 8px; transition: filter .18s ease;
+  }
+  button.primary:hover { filter: brightness(1.08); }
+  button.primary:disabled { opacity: .55; cursor: not-allowed; filter: none; }
+
+  .out {
+    margin: 26px auto 0; max-width: 920px; padding: 16px 18px; min-height: 168px;
+    border-radius: 12px; background: #0b0d11; border: 1px solid #1e2128;
+    color: #c3cad6; font-family: var(--mono); font-size: 12.5px; line-height: 1.8;
+    white-space: pre-wrap; word-break: break-all;
+  }
+  .out.err { color: #fca5a5; }
+
+  .foot { margin: 14px auto 0; max-width: 920px; display: flex; justify-content: center; gap: 10px; }
+  .badge { display: none; align-items: center; gap: 6px; font-size: 12px; }
+  .badge.show { display: inline-flex; }
+  .badge.ok { color: var(--success); }
+  .badge.err { color: var(--danger); }
+  .spinner {
+    width: 13px; height: 13px; border-radius: 999px; border: 2px solid rgba(255,255,255,.18);
+    border-top-color: var(--primary); animation: spin .8s linear infinite; display: none;
+  }
+  .spinner.show { display: inline-block; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 640px) {
+    .page { padding: 18px 16px 40px; }
+    .panel { padding: 30px 18px 24px; }
+    .tab { padding: 8px 13px; }
+    .tab span { display: none; }
+    .head-text h1 { font-size: 16px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="head">
+    <a class="back" id="back" href="#" aria-label="返回">
+      <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>
+    </a>
+    <div class="head-icon">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+    </div>
+    <div class="head-text">
+      <h1>诊断工具</h1>
+      <p>Ping 连通性、DNS 解析与端口扫描</p>
+    </div>
+  </header>
+
+  <div class="divider"></div>
+
+  <div class="tabs">
+    <button class="tab active" data-tab="ping">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <span>Ping 检测</span>
+    </button>
+    <button class="tab" data-tab="dns">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+      <span>DNS 查询</span>
+    </button>
+    <button class="tab" data-tab="portscan">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span>端口扫描</span>
+    </button>
+  </div>
+
+  <section class="panel">
+    <div class="panel-head">
+      <h2 id="panel-title">Ping 检测</h2>
+      <p id="panel-desc">检测目标主机的可达性与往返时延</p>
+    </div>
+
+    <div class="form" id="row-ping">
+      <div class="field">
+        <label>目标主机（IP 或域名）</label>
+        <input id="ping-host" placeholder="例如 192.168.110.1 或 www.baidu.com" />
+      </div>
+      <div class="field narrow">
+        <label>探测次数</label>
+        <input id="ping-count" type="number" min="1" max="20" value="4" />
+      </div>
+      <button class="primary" id="ping-run" data-label="开始检测">开始检测</button>
+    </div>
+
+    <div class="form" id="row-dns" style="display:none">
+      <div class="field">
+        <label>域名</label>
+        <input id="dns-name" placeholder="例如 www.baidu.com" />
+      </div>
+      <button class="primary" id="dns-run" data-label="查询记录">查询记录</button>
+    </div>
+
+    <div class="form" id="row-portscan" style="display:none">
+      <div class="field">
+        <label>目标主机</label>
+        <input id="scan-host" placeholder="例如 192.168.110.1" />
+      </div>
+      <div class="field narrow">
+        <label>端口范围</label>
+        <input id="scan-ports" value="1-1024" />
+      </div>
+      <button class="primary" id="scan-run" data-label="开始扫描">开始扫描</button>
+    </div>
+
+    <pre class="out" id="out">就绪。选择上方工具并输入目标后开始。</pre>
+    <div class="foot">
+      <span class="spinner" id="spin"></span>
+      <span class="badge" id="status"></span>
+    </div>
+  </section>
+</div>
+
+<script>
+  document.getElementById('back').addEventListener('click', function (ev) {
+    ev.preventDefault();
+    if (history.length > 1) history.back();
+    else location.href = './';
+  });
+
+  var PREFIX = (function () {
+    var p = location.pathname;
+    var i = p.indexOf('/tools.html');
+    return i >= 0 ? p.slice(0, i) : p.replace(/\/$/, '');
+  })();
+
+  var META = {
+    ping: ['Ping 检测', '检测目标主机的可达性与往返时延'],
+    dns: ['DNS 查询', '解析域名的 A / AAAA / CNAME / MX / NS 记录'],
+    portscan: ['端口扫描', '探测目标主机开放的服务端口']
+  };
+
+  var out = document.getElementById('out');
+  var statusEl = document.getElementById('status');
+  var spin = document.getElementById('spin');
+
+  function setStatus(ok, text) {
+    statusEl.className = 'badge show ' + (ok ? 'ok' : 'err');
+    statusEl.textContent = text || (ok ? '完成' : '失败');
+  }
+  function clearStatus() {
+    statusEl.className = 'badge';
+    statusEl.textContent = '';
+  }
+  function setBusy(on) {
+    spin.className = 'spinner' + (on ? ' show' : '');
+  }
+
+  function switchTab(name) {
+    document.querySelectorAll('.tab').forEach(function (t) {
+      t.classList.toggle('active', t.dataset.tab === name);
+    });
+    ['ping', 'dns', 'portscan'].forEach(function (k) {
+      document.getElementById('row-' + k).style.display = k === name ? 'flex' : 'none';
+    });
+    document.getElementById('panel-title').textContent = META[name][0];
+    document.getElementById('panel-desc').textContent = META[name][1];
+    out.className = 'out';
+    out.textContent = '就绪。输入目标后点击按钮开始。';
+    clearStatus();
+  }
+
+  function busy(btn, on) {
+    btn.disabled = on;
+    btn.textContent = on ? '执行中…' : btn.dataset.label;
+    setBusy(on);
+  }
+
+  async function run(url, btn, tip) {
+    busy(btn, true);
+    out.className = 'out';
+    out.textContent = tip;
+    clearStatus();
+    try {
+      var r = await fetch(PREFIX + url, { cache: 'no-store' });
+      var j = await r.json();
+      if (j.code !== 200 || !j.data) throw new Error(j.message || '请求失败');
+      out.textContent = j.data.output || '(无输出)';
+      out.className = 'out';
+      setStatus(!!j.data.ok);
+    } catch (e) {
+      out.className = 'out err';
+      out.textContent = '出错：' + (e.message || e);
+      setStatus(false);
+    } finally {
+      busy(btn, false);
+    }
+  }
+
+  document.querySelectorAll('.tab').forEach(function (t) {
+    t.addEventListener('click', function () { switchTab(t.dataset.tab); location.hash = t.dataset.tab; });
+  });
+
+  var pingBtn = document.getElementById('ping-run');
+  pingBtn.addEventListener('click', function () {
+    var host = document.getElementById('ping-host').value.trim();
+    if (!host) { out.className = 'out err'; out.textContent = '请输入目标主机'; return; }
+    var count = document.getElementById('ping-count').value || 4;
+    run('/api/tools/ping?host=' + encodeURIComponent(host) + '&count=' + encodeURIComponent(count), pingBtn, '正在探测 ' + host + ' …');
+  });
+
+  var dnsBtn = document.getElementById('dns-run');
+  dnsBtn.addEventListener('click', function () {
+    var name = document.getElementById('dns-name').value.trim();
+    if (!name) { out.className = 'out err'; out.textContent = '请输入域名'; return; }
+    run('/api/tools/dns?name=' + encodeURIComponent(name), dnsBtn, '正在解析 ' + name + ' …');
+  });
+
+  var scanBtn = document.getElementById('scan-run');
+  scanBtn.addEventListener('click', function () {
+    var host = document.getElementById('scan-host').value.trim();
+    if (!host) { out.className = 'out err'; out.textContent = '请输入目标主机'; return; }
+    var ports = document.getElementById('scan-ports').value.trim() || '1-1024';
+    run('/api/tools/portscan?host=' + encodeURIComponent(host) + '&ports=' + encodeURIComponent(ports), scanBtn, '正在扫描 ' + host + ' …');
+  });
+
+  var hash = (location.hash || '').replace('#', '');
+  switchTab(META[hash] ? hash : 'ping');
+</script>
+</body>
+</html>

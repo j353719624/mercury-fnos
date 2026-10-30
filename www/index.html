@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="./logo.png" />
+    <!-- 禁用放大 -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+    <title>MERCURY</title>
+    <style>
+      :root {
+        --switch-chassis-bg: #09090b;
+        --switch-port-bg: #1f1f24;
+        --switch-led-green: #10b981;
+        --switch-led-amber: #f59e0b;
+        --switch-text: #09090b;
+        --bg-color: #ffffff;
+      }
+      html.dark {
+        --switch-chassis-bg: #2a2a35;
+        --switch-port-bg: #4b4b60;
+        --switch-text: #9ca3af;
+        --bg-color: #141414;
+      }
+
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        background-color: var(--bg-color);
+        max-height: 100dvh;
+      }
+
+      #app {
+        width: 100%;
+      }
+
+      .first-loading-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        height: 100dvh;
+        gap: 22px;
+      }
+
+      .switch-chassis {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 10px 14px;
+        background-color: var(--switch-chassis-bg);
+        border-radius: 6px;
+        box-shadow: 0 10px 25px -8px rgba(0, 0, 0, 0.25);
+        overflow: hidden;
+      }
+
+      .switch-chassis::before {
+        content: '';
+        position: absolute;
+        inset: 0 0 auto 0;
+        height: 2px;
+        background: rgba(255, 255, 255, 0.12);
+      }
+
+      .switch-port {
+        width: 14px;
+        height: 16px;
+        background-color: var(--switch-port-bg);
+        border-radius: 2px;
+        display: flex;
+        justify-content: center;
+        box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
+      }
+
+      .switch-led {
+        width: 6px;
+        height: 4px;
+        margin-top: 2px;
+        border-radius: 1px;
+        color: var(--switch-led-green);
+        background-color: currentColor;
+        box-shadow: 0 0 6px currentColor;
+        animation: blink 1s ease-in-out infinite alternate;
+      }
+
+      .switch-led.amber {
+        color: var(--switch-led-amber);
+      }
+
+      .switch-port:nth-child(1) .switch-led {
+        animation-delay: 0s;
+      }
+      .switch-port:nth-child(2) .switch-led {
+        animation-delay: 0.15s;
+      }
+      .switch-port:nth-child(3) .switch-led {
+        animation-delay: 0.3s;
+      }
+      .switch-port:nth-child(4) .switch-led {
+        animation-delay: 0.45s;
+      }
+      .switch-port:nth-child(5) .switch-led {
+        animation-delay: 0.6s;
+      }
+      .switch-port:nth-child(6) .switch-led {
+        animation-delay: 0.75s;
+      }
+      .switch-port:nth-child(7) .switch-led {
+        animation-delay: 0.9s;
+      }
+      .switch-port:nth-child(8) .switch-led {
+        animation-delay: 1.05s;
+      }
+
+      @keyframes blink {
+        0%,
+        30% {
+          background-color: var(--switch-port-bg);
+          box-shadow: none;
+        }
+        70%,
+        100% {
+          background-color: currentColor;
+          box-shadow: 0 0 6px currentColor;
+        }
+      }
+
+      .first-loading-text {
+        color: var(--switch-text);
+        font-family: ui-sans-serif, system-ui, sans-serif;
+        font-size: 13px;
+        font-weight: 600;
+        letter-spacing: 2px;
+        text-transform: uppercase;
+      }
+    </style>
+    <script type="module" crossorigin src="./assets/index-quJxVxr2.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-IkcsKChV.css">
+  </head>
+  <body>
+    <div id="app">
+      <div class="first-loading-wrap">
+        <div class="switch-chassis">
+          <div class="switch-port"><div class="switch-led"></div></div>
+          <div class="switch-port"><div class="switch-led"></div></div>
+          <div class="switch-port"><div class="switch-led"></div></div>
+          <div class="switch-port"><div class="switch-led"></div></div>
+          <div class="switch-port"><div class="switch-led"></div></div>
+          <div class="switch-port"><div class="switch-led amber"></div></div>
+          <div class="switch-port"><div class="switch-led"></div></div>
+          <div class="switch-port"><div class="switch-led"></div></div>
+        </div>
+        <div class="first-loading-text">Loading...</div>
+      </div>
+    </div>
+  </body>
+</html>
